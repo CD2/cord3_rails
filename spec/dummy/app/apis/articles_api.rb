@@ -4,4 +4,6 @@ class ArticlesApi < ApplicationApi
   attribute :constant_thing do |r|
     'test'
   end
+
+  has_many :comments
 end

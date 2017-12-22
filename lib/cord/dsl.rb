@@ -132,6 +132,29 @@ module Cord
           yield
           @context = temp_context
         end
+
+        def has_many association_name, opts = {}
+          options = opts.to_options
+          single = association_name.to_s.singularize
+
+          self.attribute "#{single}_ids", options do |record|
+            record.send(association_name).ids
+          end
+          self.attribute "#{single}_count", options do |record|
+            record.send(association_name).size
+          end
+        end
+
+        def has_one association_name, opts = {}
+          options = opts.to_options
+
+          self.attribute "#{association_name}_id", options do |record|
+            record.send(association_name)&.id
+          end
+        end
+
+        def belongs_to association_name, opts = {}
+        end
       end
 
       def model

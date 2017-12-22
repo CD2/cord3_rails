@@ -16,6 +16,8 @@ class CommentsApi < ApplicationApi
     end
   end
 
+  has_one :article
+
   crud_actions :create, :update, :destroy
   permit_params :body, :article_id
 end
