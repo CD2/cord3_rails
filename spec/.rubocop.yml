@@ -1,0 +1,27 @@
+inherit_from:
+  - ../.rubocop.yml
+
+BlockDelimiters:
+  Enabled: false
+
+StringLiterals:
+  Enabled: false
+
+Metrics/LineLength:
+  Max: 100
+
+Metrics/BlockLength:
+  Max: 100
+
+# These just forces a style
+RSpec/MessageSpies:
+  EnforcedStyle: receive
+
+RSpec/ImplicitExpect:
+  EnforcedStyle: should
+
+RSpec/HookArgument:
+  EnforcedStyle: each
+
+RSpec/NotToNot:
+  EnforcedStyle: to_not

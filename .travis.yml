@@ -1,0 +1,29 @@
+dist: trusty
+language: ruby
+cache:
+  bundler: true
+rvm:
+  - 2.4.1
+env:
+  global:
+    - DB=pgsql
+    - RAILS_ENV=test
+    - CC_TEST_REPORTER_ID=18f06c73625ebb4be1cb881dde7148edc4926259e1bdca9907c9f16a3cc27c97
+services:
+  - postgresql
+addons:
+  postgresql: "9.6"
+before_install:
+  - "echo 'gem: --no-ri --no-rdoc' > ~/.gemrc"
+before_script:
+  - curl -L https://codeclimate.com/downloads/test-reporter/test-reporter-latest-linux-amd64 > ./cc-test-reporter
+  - chmod +x ./cc-test-reporter
+  - ./cc-test-reporter before-build
+  - psql -c 'create database travis_ci_test;' -U postgres
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+  - nvm install 6
+script:
+  - bundle exec rspec spec/$TEST_SUITE -fd
+after_success:
+  - ./cc-test-reporter after-build --exit-code $TRAVIS_TEST_RESULT

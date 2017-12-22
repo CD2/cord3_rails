@@ -1,0 +1,30 @@
+require: rubocop-rspec
+
+# Style choice: Nested classes & modules
+Style/ClassAndModuleChildren:
+  EnforcedStyle: nested
+
+SpaceAroundEqualsInParameterDefault:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+AllCops:
+  TargetRubyVersion: 2.4
+  Include:
+    - Rakefile
+    - config.ru
+    - lib/**/*.rake
+  Exclude:
+    - db/schema.rb
+    - db/migrate/*
+    - app/assets/*
+    - node_modules/**/*
+    - config/puma.rb
+    - config/initializers/*
+    - config/environments/*
+    - config/spring.rb
+    - bin/webpack-dev-server
+    - Rakefile
+    - Gemfile
