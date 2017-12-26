@@ -155,6 +155,11 @@ module Cord
 
         def belongs_to association_name, opts = {}
         end
+
+        def searchable_by *cols
+          @searchable_columns ||= []
+          @searchable_columns += cols
+        end
       end
 
       def model
@@ -168,6 +173,11 @@ module Cord
       def default_attributes
         self.class.default_attributes
       end
+
+      def searchable_columns
+        self.class.searchable_by
+      end
+
     end
   end
 end
