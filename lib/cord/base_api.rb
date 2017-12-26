@@ -15,9 +15,23 @@ module Cord
       result = {}
       scopes.each do |name|
         name = normalize(name)
-        result[name] = apply_scope(driver, name, self.class.scopes[name]).ids
+        result[name] = apply_scope(sort ? sorted_driver(sort) : driver, name, self.class.scopes[name]).ids
       end
       result
+    end
+
+    def sorted_driver(sort)
+      col, dir = sort.downcase.split(' ')
+      unless dir.in?(%w[asc desc])
+        error "sort direction must be either 'asc' or 'desc', instead got '#{dir}'"
+        return driver
+      end
+      if col.in?(model.column_names)
+        driver.order(col => dir)
+      else
+        error "unknown sort #{col}"
+        driver
+      end
     end
 
     def render_records ids, keywords = []
