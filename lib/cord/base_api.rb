@@ -13,9 +13,11 @@ module Cord
 
     def render_ids scopes, search = nil, sort = nil
       result = {}
+      records = sort ? sorted_driver(sort) : driver
+      records = search_filter(records, search) if search
       scopes.each do |name|
         name = normalize(name)
-        result[name] = apply_scope(sort ? sorted_driver(sort) : driver, name, self.class.scopes[name]).ids
+        result[name] = apply_scope(records, name, self.class.scopes[name]).ids
       end
       result
     end
@@ -32,6 +34,11 @@ module Cord
         error "unknown sort #{col}"
         driver
       end
+    end
+
+    def search_filter(driver, search)
+      condition = searchable_columns.map { |col| "#{col} ILIKE :term" }.join ' OR '
+      driver.where(condition, term: "%#{search}%")
     end
 
     def render_records ids, keywords = []
