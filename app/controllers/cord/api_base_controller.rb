@@ -18,7 +18,7 @@ module Cord
       data.map do |api, body|
         blob = { table: api.resource_name }
         ids = (body[:ids] || []).map { |x|
-          [x[:_id], api.render_ids(x[:scopes], x[:query], x[:sort])]
+          [(x[:_id] || '_'), api.render_ids(x[:scopes], x[:query], x[:sort])]
         }.to_h
         ids.merge! ids.delete(nil) if ids[nil]
         blob[:ids] = ids
