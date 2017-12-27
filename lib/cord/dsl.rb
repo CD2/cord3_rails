@@ -154,6 +154,7 @@ module Cord
         end
 
         def belongs_to association_name, opts = {}
+          options = opts.to_options
           self.attribute association_name, options
         end
 
