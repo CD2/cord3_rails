@@ -136,7 +136,7 @@ module Cord
         def has_many association_name, opts = {}
           options = opts.to_options
           single = association_name.to_s.singularize
-
+          self.attribute association_name, options
           self.attribute "#{single}_ids", options do |record|
             record.send(association_name).ids
           end
@@ -147,13 +147,14 @@ module Cord
 
         def has_one association_name, opts = {}
           options = opts.to_options
-
+          self.attribute association_name, options
           self.attribute "#{association_name}_id", options do |record|
             record.send(association_name)&.id
           end
         end
 
         def belongs_to association_name, opts = {}
+          self.attribute association_name, options
         end
 
         def searchable_by *cols
