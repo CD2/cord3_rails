@@ -13,7 +13,7 @@ module Cord
 
     def render_ids scopes, search = nil, sort = nil
       result = {}
-      records = sort ? sorted_driver(sort) : driver
+      records = sort.present? ? sorted_driver(sort) : driver
       records = search_filter(records, search) if search
       scopes.each do |name|
         name = normalize(name)
