@@ -152,7 +152,7 @@ module Cord
 
     def perform_action(name, data)
       name = normalize(name)
-      @data = ActionController::Parameters.new(data)
+      @data = ActionController::Parameters.new(data) if data
       @response = {}
       if @record
         action = member_actions[name]
