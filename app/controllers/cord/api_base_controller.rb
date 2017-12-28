@@ -31,7 +31,7 @@ module Cord
           else
             result = api.perform_collection_action(x[:name], x[:data])
           end
-          { _id: x[:_id], data: result }
+          x[:_id] ? { _id: x[:_id], data: result } : { data: result }
         end
         blob
       end
