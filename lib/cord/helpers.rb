@@ -10,8 +10,20 @@ module Cord
           obj.is_a?(Class) && obj < Cord::BaseApi
         end
 
-        def find_api value
-          api = (value.to_s.camelcase.chomp('Api').pluralize + 'Api').constantize
+        def find_api value, namespace: nil
+          api_name = (value.to_s.camelcase.chomp('Api').pluralize + 'Api')
+          namespaced_api_name = namespace ? "#{namespace}::#{api_name}" : api_name
+          begin
+            api = namespaced_api_name.constantize
+          rescue NameError => e
+            namespace ||= name
+            next_namespace = namespace.deconstantize
+            if next_namespace.present?
+              api = find_api(api_name, namespace: next_namespace)
+            else
+              raise e
+            end
+          end
           raise NameError, "#{api} is not a Cord Api" unless is_api?(api)
           api
         end
