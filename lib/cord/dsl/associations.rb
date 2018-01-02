@@ -22,11 +22,13 @@ module Cord
               end
             end
 
-            self.macro association_name do |*attributes|
-              controller.load_records(api, get_attribute("#{single}_ids"), attributes)
-            end
+            self.attribute association_name, options
 
-            self.meta association_name, children: "#{single}_ids", references: api
+            # self.macro association_name do |*attributes|
+            #   controller.load_records(api, get_attribute("#{single}_ids"), attributes)
+            # end
+
+            self.meta association_name, children: "#{single}_ids"#, references: api
           end
 
           def has_one association_name, opts = {}
@@ -37,22 +39,26 @@ module Cord
               record.send(association_name)&.id
             end
 
-            self.macro association_name do |*attributes|
-              controller.load_records(api, [get_attribute("#{association_name}_id")], attributes)
-            end
+            self.attribute association_name, options
 
-            self.meta association_name, children: "#{association_name}_id", references: api
+            # self.macro association_name do |*attributes|
+            #   controller.load_records(api, [get_attribute("#{association_name}_id")], attributes)
+            # end
+
+            self.meta association_name, children: "#{association_name}_id"#, references: api
           end
 
           def belongs_to association_name, opts = {}
             options = opts.to_options
             api = options.delete(:api) || find_api(association_name)
 
-            self.macro association_name do |*attributes|
-              controller.load_records(api, [get_attribute("#{association_name}_id")], attributes)
-            end
+            self.attribute association_name, options
 
-            self.meta association_name, children: "#{association_name}_id", references: api
+            # self.macro association_name do |*attributes|
+            #   controller.load_records(api, [get_attribute("#{association_name}_id")], attributes)
+            # end
+
+            self.meta association_name, children: "#{association_name}_id"#, references: api
           end
         end
       end
