@@ -6,16 +6,6 @@ module Cord
       undelegated_methods = methods
 
       class << self
-        def load_api value
-          api = value if is_api?(value)
-          api ||= find_api(value)
-
-          controller_instance = controller if is_api?(self)
-          controller_instance = self if is_a?(ApiBaseController)
-
-          api.new(controller_instance)
-        end
-
         def is_api? obj
           obj.is_a?(Class) && obj < Cord::BaseApi
         end
@@ -46,9 +36,44 @@ module Cord
           end
           result
         end
+
+        def apply_sort(driver, sort)
+          col, dir = sort.downcase.split(' ')
+          unless dir.in?(%w[asc desc])
+            error "sort direction must be either 'asc' or 'desc', instead got '#{dir}'"
+            return driver
+          end
+          if col.in?(model.column_names)
+            driver.order(col => dir)
+          else
+            error "unknown sort #{col}"
+            driver
+          end
+        end
+
+        def apply_search(driver, search, columns = [])
+          condition = columns.map { |col| "#{col} ILIKE :term" }.join ' OR '
+          driver.where(condition, term: "%#{search}%")
+        end
       end
 
       delegate *(methods - undelegated_methods), to: :class
+
+      def self.load_api value
+        api = value if is_api?(value)
+        api ||= find_api(value)
+        api.new
+      end
+
+      def load_api value
+        api = value if is_api?(value)
+        api ||= find_api(value)
+
+        controller_instance = controller if is_api?(self)
+        controller_instance = self if is_a?(ApiBaseController)
+
+        api.new(controller_instance)
+      end
     end
   end
 end

@@ -10,7 +10,7 @@ class ArticlesApi < ApplicationApi
   default_scope &:published
 
   attribute :first_comment_id do |record|
-    get(:comment_ids).first
+    get_attribute(:comment_ids).first
   end
 
   associations :videos, :image, :author
@@ -23,12 +23,9 @@ class ArticlesApi < ApplicationApi
 
   has_one :address
 
-  :address
-  :address_id
-
   macro :address do
     if attributes[:address]
-      @record_json.merge! get(:address)
+      @record_json.merge! get_attribute(:address)
     else
       keyword_missing(:address)
     end
@@ -41,11 +38,11 @@ class ArticlesApi < ApplicationApi
     end
 
     attribute :comment_count do |record|
-      requested?(:comment_ids) ? get(:comment_ids).size : record.comments.count
+      requested?(:comment_ids) ? get_attribute(:comment_ids).size : record.comments.count
     end
 
-    macro :comments do |attributes|
-      load_records(NotesApi, get(:comment_ids), attributes)
+    macro :comments do |*attributes|
+      load_records(NotesApi, get_attribute(:comment_ids), attributes)
     end
 
     meta :comments, children: :comment_ids, references: NotesApi
@@ -57,8 +54,8 @@ class ArticlesApi < ApplicationApi
       record.image&.ids
     end
 
-    macro :image do |attributes|
-      load_records(ImagesApi, [get(:image_id)], attributes)
+    macro :image do |*attributes|
+      load_records(ImagesApi, [get_attribute(:image_id)], attributes)
     end
 
     meta :image, children: :image_id, references: ImagesApi
@@ -66,8 +63,8 @@ class ArticlesApi < ApplicationApi
 
   belongs_to :author, api: :users
   # == Generates ==>
-    macro :author do |attributes|
-      load_records(UsersApi, [get(:author_id)], attributes)
+    macro :author do |*attributes|
+      load_records(UsersApi, [get_attribute(:author_id)], attributes)
     end
 
     meta :author, references: UsersApi

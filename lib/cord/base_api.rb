@@ -1,44 +1,31 @@
 require_relative 'crud'
-require_relative 'dsl'
 require_relative 'helpers'
 require_relative 'json_string'
 
+Dir[Cord::Engine.root + './lib/cord/dsl/**/*.rb'].each { |file| require file }
+
 module Cord
   class BaseApi
+    include DSL::Actions
+    include DSL::Associations
+    include DSL::Core
+    include DSL::Records
+
     include CRUD
-    include DSL
     include Helpers
 
     attr_reader :controller
 
     def render_ids scopes, search = nil, sort = nil
       result = {}
-      records = sort.present? ? sorted_driver(sort) : driver
-      records = search_filter(records, search) if search
+      records = driver
+      records = apply_sort(records, sort) if sort.present?
+      records = apply_search(records, search, searchable_columns) if search.present?
       scopes.each do |name|
         name = normalize(name)
         result[name] = apply_scope(records, name, self.class.scopes[name]).ids
       end
       result
-    end
-
-    def sorted_driver(sort)
-      col, dir = sort.downcase.split(' ')
-      unless dir.in?(%w[asc desc])
-        error "sort direction must be either 'asc' or 'desc', instead got '#{dir}'"
-        return driver
-      end
-      if col.in?(model.column_names)
-        driver.order(col => dir)
-      else
-        error "unknown sort #{col}"
-        driver
-      end
-    end
-
-    def search_filter(driver, search)
-      condition = searchable_columns.map { |col| "#{col} ILIKE :term" }.join ' OR '
-      driver.where(condition, term: "%#{search}%")
     end
 
     def render_records ids, keywords = []
@@ -49,12 +36,13 @@ module Cord
     end
 
     def render_record record, keywords = []
-      @keywords = prepare_keywords(keywords)
+      @keywords, @options = prepare_keywords(keywords)
       @record = record
       @record_json = {}
+      @calculated_attributes = {}
       @keywords.each do |keyword|
         if macros.has_key?(keyword)
-          perform_macro(keyword)
+          perform_macro(keyword, *(@options[keyword] || []))
         elsif attributes.has_key?(keyword)
           @record_json[keyword] = render_attribute(keyword)
         else
@@ -62,7 +50,7 @@ module Cord
         end
       end
       result = @record_json
-      @record, @record_json, @keywords, @record_json = nil
+      @record, @record_json, @calculated_attributes, @keywords, @options = nil
       result
     end
 
@@ -91,92 +79,26 @@ module Cord
     end
 
     def prepare_keywords keywords
-      keywords = keywords | default_attributes
-      keywords = keywords.map { |x| normalize(x) }
-      # result = []
-      # i = 0
-      # while keywords[i] do
-      #   keywords += meta_attributes.dig(keyword)
-      #   i += 1
-      # end
-    end
-
-    # this is getting pretty confusing, use seperate DSLs:
-    # one for defining stuff
-    # one for using stuff inside member actions
-    # one for using stuff inside collection actions
-    # one for using stuff inside macros
-    # then move all these private methods to the correct place
-
-    def render data
-      raise 'Call to \'render\' after action chain has been halted' if @halted
-      @response.merge! data
-    end
-
-    def halt! message = nil, status: 401
-      return if halted?
-      if message
-        @response = {}
-        error message
-      else
-        @response = nil
+      options = {}
+      keywords = Array.wrap(keywords + [:id]).map do |x|
+        if x.is_a?(Hash)
+          x.map do |macro_name, macro_options|
+            macro_name = normalize(macro_name)
+            options[macro_name] = Array.wrap(macro_options)
+            macro_name
+          end
+        else
+          normalize(x)
+        end
       end
-      @halted = true
-    end
-
-    def halted?
-      !!@halted
-    end
-
-    def render_attribute name
-      name = normalize(name)
-      @record_json[name] = get(name)
-    end
-
-    def get attribute
-      attribute = normalize(attribute)
-      @record_json.has_key?(attribute) ? @record_json[attribute] : calculate_attribute(attribute)
-    end
-
-    def calculate_attribute(name)
-      name = normalize(name)
-      raise ArgumentError, "undefined attribute: '#{name}'" unless attributes[name]
-      instance_exec(@record, &attributes[name])
-    end
-
-    def perform_macro(name, *args)
-      name = normalize(name)
-      raise ArgumentError, "undefined macro: '#{name}'" unless macros[name]
-      instance_exec(*args, &macros[name])
-    end
-
-    def perform_action(name, data)
-      name = normalize(name)
-      @data = ActionController::Parameters.new(data) if data
-      @response = {}
-      if @record
-        action = member_actions[name]
-        raise ArgumentError, "undefined member action: '#{name}'" unless action
-        instance_exec(@record, &action)
-      else
-        action = collection_actions[name]
-        raise ArgumentError, "undefined collection action: '#{name}'" unless action
-        instance_exec &action
+      keywords = keywords.flatten.uniq
+      i = 0
+      while keywords[i] do
+        keyword = keywords[i]
+        keywords += (meta_attributes.dig(keyword, :children) || []) - keywords
+        i += 1
       end
-      result = @response
-      @data, @response = nil
-      result
-    end
-
-    attr_reader :data
-
-    def requested? keyword
-      keyword = normalize(keyword)
-      @keywords.include? keyword
-    end
-
-    def keyword_missing name
-      raise NameError, "'#{name}' does not match any keywords defined for #{self.class.name}"
+      [keywords, options]
     end
 
     def method_missing *args, &block

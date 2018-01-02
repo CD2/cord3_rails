@@ -6,35 +6,43 @@ module Cord
       data = {}
       Array.wrap(params[:_json]).each do |body|
         body = body.permit!.to_hash.with_indifferent_access
-        api = load_api(body[:api])
+        api = find_api(body[:api])
         data[api] = body
       end
-      render json: prepare_json(data)
+      @processing_queue = data.to_a
+      render json: process_queue
     end
 
-    def prepare_json data
-      # dumb version for now
-
-      data.map do |api, body|
-        blob = { table: api.resource_name }
-        ids = (body[:ids] || []).map { |x|
-          [(x[:_id] || '_'), api.render_ids(x[:scopes], x[:query], x[:sort])]
-        }.to_h
-        ids.merge! ids.delete(nil) if ids[nil]
-        blob[:ids] = ids
-        blob[:records] = (body[:records] || []).map do |x|
-          api.render_records x[:ids], x[:attributes]
-        end
-        blob[:actions] = (body[:actions] || []).map do |x|
-          if x[:ids]
-            result = api.perform_bulk_member_action(x[:ids], x[:name], x[:data])
-          else
-            result = api.perform_collection_action(x[:name], x[:data])
-          end
-          x[:_id] ? { _id: x[:_id], data: result } : { data: result }
-        end
-        blob
+    def process_queue
+      response = []
+      i = 0
+      while @processing_queue[i] do
+        api, body = @processing_queue[i]
+        response << process_blob(api, body)
+        i += 1
       end
+      response
+    end
+
+    def process_blob api, body
+      api = load_api(api)
+      blob = { table: api.resource_name }
+      ids = (body[:ids] || []).map { |x|
+        [(x[:_id] || '_'), api.render_ids(x[:scopes], x[:query], x[:sort])]
+      }.to_h
+      blob[:ids] = ids
+      blob[:records] = (body[:records] || []).map do |x|
+        api.render_records x[:ids], x[:attributes]
+      end
+      blob[:actions] = (body[:actions] || []).map do |x|
+        if x[:ids]
+          result = api.perform_bulk_member_action(x[:ids], x[:name], x[:data])
+        else
+          result = api.perform_collection_action(x[:name], x[:data])
+        end
+        x[:_id] ? { _id: x[:_id], data: result } : { data: result }
+      end
+      blob
     end
 
     def perform_actions *args
@@ -46,8 +54,7 @@ module Cord
     end
 
     def load_records api, ids = [], attributes = []
-
-      # for each attribute, try to find a macro, else try to find an attribute, else error
+      @processing_queue << [api, { records: [{ ids: ids, attributes: attributes }] }]
     end
   end
 end
