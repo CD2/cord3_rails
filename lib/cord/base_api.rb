@@ -80,7 +80,7 @@ module Cord
 
     def prepare_keywords keywords
       options = {}
-      keywords = Array.wrap(keywords + [:id]).map do |x|
+      keywords = Array.wrap(keywords | default_attributes).map do |x|
         if x.is_a?(Hash)
           x.map do |macro_name, macro_options|
             macro_name = normalize(macro_name)

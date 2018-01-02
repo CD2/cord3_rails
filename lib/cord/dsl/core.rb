@@ -50,8 +50,15 @@ module Cord
               raise ArgumentError, 'expected an ActiveRecord model' unless is_model?(value)
               @model = value
               @model.column_names.each { |name| attribute name }
+              default_attributes @model.column_names
             end
             @model
+          end
+
+          def default_attributes *values
+            @default_attributes ||= []
+            @default_attributes += values.flatten if values.any?
+            @default_attributes
           end
 
           def resource_name value = nil
@@ -139,6 +146,10 @@ module Cord
 
       def resource_name
         self.class.resource_name
+      end
+
+      def default_attributes
+        self.class.default_attributes
       end
 
       def searchable_columns
