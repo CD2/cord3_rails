@@ -50,6 +50,7 @@ module Cord
         end
 
         def apply_sort(driver, sort)
+          raise ArgumentError, 'expected an ActiveRecord::Relation' unless is_driver?(driver)
           col, dir = sort.downcase.split(' ')
           unless dir.in?(%w[asc desc])
             error "sort direction must be either 'asc' or 'desc', instead got '#{dir}'"
@@ -64,6 +65,7 @@ module Cord
         end
 
         def apply_search(driver, search, columns = [])
+          raise ArgumentError, 'expected an ActiveRecord::Relation' unless is_driver?(driver)
           condition = columns.map { |col| "#{col} ILIKE :term" }.join ' OR '
           driver.where(condition, term: "%#{search}%")
         end
