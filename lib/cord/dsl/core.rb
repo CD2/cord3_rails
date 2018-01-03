@@ -50,6 +50,7 @@ module Cord
               raise ArgumentError, 'expected an ActiveRecord model' unless is_model?(value)
               @model = value
               @model.column_names.each { |name| attribute name }
+              default_attributes ['id']
             end
             @model
           end
