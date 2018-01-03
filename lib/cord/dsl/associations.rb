@@ -7,7 +7,7 @@ module Cord
         class << self
           def has_many association_name, opts = {}
             options = opts.to_options
-            api = options.delete(:api) || find_api(association_name)
+            api = options.delete(:api) || find_api_name(association_name)
             single = association_name.to_s.singularize
 
             self.attribute "#{single}_ids", options do |record|
@@ -33,7 +33,7 @@ module Cord
 
           def has_one association_name, opts = {}
             options = opts.to_options
-            api = options.delete(:api) || find_api(association_name)
+            api = options.delete(:api) || find_api_name(association_name)
 
             self.attribute "#{association_name}_id", options do |record|
               record.send(association_name)&.id
@@ -50,7 +50,7 @@ module Cord
 
           def belongs_to association_name, opts = {}
             options = opts.to_options
-            api = options.delete(:api) || find_api(association_name)
+            api = options.delete(:api) || find_api_name(association_name)
 
             self.attribute association_name, options
 

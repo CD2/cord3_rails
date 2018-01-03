@@ -10,8 +10,14 @@ module Cord
           obj.is_a?(Class) && obj < Cord::BaseApi
         end
 
+        def find_api_name value
+          # if is_api?(self) && model&.reflect_on_association(value)
+          # fill in class based on type of association
+          value.to_s.camelcase.chomp('Api').pluralize + 'Api'
+        end
+
         def find_api value, namespace: nil
-          api_name = (value.to_s.camelcase.chomp('Api').pluralize + 'Api')
+          api_name = find_api_name(value)
           namespaced_api_name = namespace ? "#{namespace}::#{api_name}" : api_name
           begin
             api = namespaced_api_name.constantize
