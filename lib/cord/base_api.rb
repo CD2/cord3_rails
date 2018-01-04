@@ -17,7 +17,7 @@ module Cord
 
     attr_reader :controller
 
-    def render_ids scopes, search = nil, sort = nil
+    def render_ids scopes, search = nil, sort = nil, errors: []
       result = {}
       records = driver
       records = apply_sort(records, sort) if sort.present?
@@ -29,15 +29,15 @@ module Cord
       result
     end
 
-    def render_records ids, keywords = []
+    def render_records ids, keywords = [], errors: []
       @records_json = []
       ids = prepare_ids(ids)
       records = driver.where(id: ids)
-      records.each { |record| @records_json << render_record(record, keywords) }
+      records.each { |record| @records_json << render_record(record, keywords, errors: errors) }
       @records_json
     end
 
-    def render_record record, keywords = []
+    def render_record record, keywords = [], errors: []
       @keywords, @options = prepare_keywords(keywords)
       @record = record
       @record_json = {}
@@ -56,22 +56,24 @@ module Cord
       result
     end
 
-    def perform_bulk_member_action ids, name, data = {}
+    def perform_bulk_member_action ids, name, data = {}, errors: []
       @actions_json = []
       records = driver.where(id: ids)
-      records.each { |record| @actions_json << perform_member_action(record, name, data) }
+      records.each do |record|
+        @actions_json << perform_member_action(record, name, data, errors: errors)
+      end
       @actions_json
     end
 
-    def perform_member_action record, name, data = {}
+    def perform_member_action record, name, data = {}, errors: []
       @record = record
-      result = perform_action(name, data)
+      result = perform_action(name, data, errors: errors)
       @record = nil
       result
     end
 
-    def perform_collection_action name, data = {}
-      perform_action(name, data)
+    def perform_collection_action name, data = {}, errors: []
+      perform_action(name, data, errors: errors)
     end
 
     private

@@ -5,10 +5,11 @@ module Cord
 
       private
 
-      def perform_action(name, data)
+      def perform_action(name, data, errors: [])
         name = normalize(name)
         @data = ActionController::Parameters.new(data) if data
         @response = {}
+        @errors = errors
         if @record
           action = member_actions[name]
           raise ArgumentError, "undefined member action: '#{name}'" unless action
@@ -19,7 +20,7 @@ module Cord
           instance_exec &action
         end
         result = @response
-        @data, @response = nil
+        @data, @response, @errors = nil
         result
       end
 
@@ -30,14 +31,14 @@ module Cord
         @response.merge! data
       end
 
-      def halt! message = nil, status: 401
+      def error data
+        @errors << data
+      end
+
+      def halt! message = nil
         return if halted?
-        if message
-          @response = {}
-          error message
-        else
-          @response = nil
-        end
+        @response = nil
+        error message if message
         @halted = true
       end
 

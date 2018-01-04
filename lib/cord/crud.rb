@@ -17,12 +17,7 @@ module Cord
             resource = driver.new(resource_params)
             instance_exec resource, &crud_callbacks[:before_create]
             next if halted?
-            if raise_on_crud_error?
-              resource.save!
-              render(id: resource.id)
-            else
-              resource.save ? render(id: resource.id) : render(resource.errors)
-            end
+            resource.save ? render(id: resource.id) : error(resource.errors)
             instance_exec resource, &crud_callbacks[:after_create]
           end
         end
@@ -32,15 +27,10 @@ module Cord
         action :update do |resource|
           instance_exec resource, &crud_callbacks[:before_update]
           next if halted?
-          if raise_on_crud_error?
-            resource.update!(resource_params)
+          if resource.update(resource_params)
             render(id: resource.id)
           else
-            if resource.update(resource_params)
-              render(id: resource.id)
-            else
-              render resource.errors
-            end
+            error resource.errors
           end
           instance_exec resource, &crud_callbacks[:after_update]
         end
@@ -96,15 +86,6 @@ module Cord
         @permitted_params ||= []
         @permitted_params += args
       end
-
-      def self.raise_on_crud_error?
-        return @raise_on_crud_error unless @raise_on_crud_error.nil?
-        @raise_on_crud_error = Cord.raise_on_crud_error
-      end
-
-      def self.raise_on_crud_error value
-        @raise_on_crud_error = value
-      end
     end
 
     def resource_params
@@ -117,10 +98,6 @@ module Cord
 
     def crud_callbacks
       self.class.crud_callbacks
-    end
-
-    def raise_on_crud_error?
-      self.class.raise_on_crud_error?
     end
   end
 end

@@ -36,15 +36,22 @@ module Cord
       blob[:records] = (body[:records] || []).inject([]) do |result, x|
         result + api.render_records(x[:ids], x[:attributes])
       end
-      blob[:actions] = (body[:actions] || []).map do |x|
-        if x[:ids]
-          result = api.perform_bulk_member_action(x[:ids], x[:name], x[:data])
-        else
-          result = api.perform_collection_action(x[:name], x[:data])
-        end
-        x[:_id] ? { _id: x[:_id], data: result } : { data: result }
-      end
+      blob[:actions] = (body[:actions] || []).map { |x| cord_process_action(api, x) }
       blob
+    end
+
+    def cord_process_action api, body
+      begin
+        e = []
+        if body[:ids]
+          result = api.perform_bulk_member_action(body[:ids], body[:name], body[:data], errors: e)
+        else
+          result = api.perform_collection_action(body[:name], body[:data], errors: e)
+        end
+        body[:_id] ? { _id: body[:_id], data: result, _errors: e } : { data: result, _errors: e }
+      rescue Exception => e
+        body[:_id] ? { _id: body[:_id], data: {}, _errors: [e] } : { data: {}, _errors: [e] }
+      end
     end
 
     def perform_actions *args
@@ -76,20 +83,22 @@ end
 #
 # {
 #   table: '',
-#   ids: { '' => [] },
-#   records: [ { id: 0, ... } ],
-#   actions: [ { _id: '', data: {} } ],
-#   aliases: { '' => 0 }
+#   ids: { '' => [], _errors: [] },
+#   records: [ { id: 0, _errors: [], ... } ],
+#   actions: [ { _id: '', data: {}, _errors: [] } ],
+#   aliases: { '' => 0 },
+#   _errors: []
 # }
 
 # The processing format:
 #
 # {
 #   Api => {
-#     ids: { '' => [] },
-#     records: [ { id: 0, ... } ],
-#     actions: [ { _id: '', data: {} } ],
-#     aliases: { '' => 0 }
+#     ids: { '' => [], _errors: [] },
+#     records: [ { id: 0, _errors: [], ... } ],
+#     actions: [ { _id: '', data: {}, _errors: [] } ],
+#     aliases: { '' => 0 },
+#     _errors: []
 #   }
 # }
 
