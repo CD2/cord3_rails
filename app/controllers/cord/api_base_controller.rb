@@ -29,10 +29,7 @@ module Cord
     def process_blob api, body
       api = load_api(api)
       blob = {}
-      ids = (body[:ids] || []).map { |x|
-        [(x[:_id] || '_'), api.render_ids(x[:scopes], x[:query], x[:sort])]
-      }.to_h
-      blob[:ids] = ids
+      blob[:ids] = (body[:ids] || []).inject({}) { |result, x| result.merge process_ids(api, x) }
       blob[:records] = (body[:records] || []).inject([]) do |result, x|
         result + api.render_records(x[:ids], x[:attributes])
       end
@@ -52,6 +49,10 @@ module Cord
       rescue Exception => e
         body[:_id] ? { _id: body[:_id], data: {}, _errors: [e] } : { data: {}, _errors: [e] }
       end
+    end
+
+    def process_ids api, body
+      { (body[:_id] || '_') => api.render_ids(body[:scopes], body[:query], body[:sort]) }
     end
 
     def perform_actions *args

@@ -17,14 +17,22 @@ module Cord
 
     attr_reader :controller
 
-    def render_ids scopes, search = nil, sort = nil, errors: []
-      result = {}
+    def render_ids scopes, search = nil, sort = nil
+      result = { _errors: {} }
       records = driver
       records = apply_sort(records, sort) if sort.present?
       records = apply_search(records, search, searchable_columns) if search.present?
       scopes.each do |name|
         name = normalize(name)
-        result[name] = apply_scope(records, name, self.class.scopes[name]).ids
+        unless self.class.scopes[name]
+          result[:_errors][name] = "'#{name}' scope not defined for #{self.class.name}"
+          next
+        end
+        begin
+          result[name] = apply_scope(records, name, self.class.scopes[name]).ids
+        rescue Exception => e
+          result[:_errors][name] = e
+        end
       end
       result
     end
@@ -109,7 +117,7 @@ module Cord
       filter_ids = Set.new
       aliases = {}
 
-      ids.map! do |x|
+      ids = ids.map do |x|
         x = normalize(x)
         if custom_aliases.has_key?(x)
           result = instance_eval(&custom_aliases[x])

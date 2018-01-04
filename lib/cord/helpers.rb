@@ -51,16 +51,23 @@ module Cord
           obj.is_a?(ActiveRecord::Relation)
         end
 
+        def assert_driver obj
+          return if is_driver?(obj)
+          raise ArgumentError, "expected an ActiveRecord::Relation, instead got '#{obj.class}'"
+        end
+
         def normalize str
           str.to_s.downcase
         end
 
         def json_merge x, y
-          x.merge(y) { |_k, v1, v2| v1.is_a?(Hash) ? json_merge(v1, v2) : v1 + v2 }
+          return x + y if x.is_a?(Array)
+          return x.merge(y) { |_k, v1, v2| json_merge(v1, v2) } if x.is_a?(Hash)
+          y
         end
 
         def apply_scope driver, name, scope
-          raise ArgumentError, 'expected an ActiveRecord::Relation' unless is_driver?(driver)
+          assert_driver(driver)
           result = instance_exec(driver, &scope)
           unless is_driver?(result)
             raise ArgumentError, "scope '#{name}' did not return an ActiveRecord::Relation"
@@ -69,11 +76,10 @@ module Cord
         end
 
         def apply_sort(driver, sort)
-          raise ArgumentError, 'expected an ActiveRecord::Relation' unless is_driver?(driver)
+          assert_driver(driver)
           col, dir = sort.downcase.split(' ')
           unless dir.in?(%w[asc desc])
-            error "sort direction must be either 'asc' or 'desc', instead got '#{dir}'"
-            return driver
+            raise ArgumentError, "'#{dir}' is not a valid sort direction, expected 'asc' or 'desc'"
           end
           if col.in?(model.column_names)
             driver.order(col => dir)
@@ -84,7 +90,7 @@ module Cord
         end
 
         def apply_search(driver, search, columns = [])
-          raise ArgumentError, 'expected an ActiveRecord::Relation' unless is_driver?(driver)
+          assert_driver(driver)
           condition = columns.map { |col| "#{col} ILIKE :term" }.join ' OR '
           driver.where(condition, term: "%#{search}%")
         end
