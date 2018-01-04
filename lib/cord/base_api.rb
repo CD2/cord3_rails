@@ -112,8 +112,9 @@ module Cord
         if custom_aliases.has_key?(x)
           result = instance_eval(&custom_aliases[x])
           result = result.id if is_record?(result)
+          result = normalize(result)
           filter_ids << result
-          aliases[x] = result
+          aliases[x] = result.to_i
           nil
         else
           x
@@ -123,16 +124,17 @@ module Cord
       ids.compact!
 
       alias_columns.each do |key|
-        temp_ids = []
+        discovered_aliases = []
         key = normalize(key)
         driver.where(key => ids).pluck('id', key).each do |id, value|
-          aliases[value] = id
+          id = normalize(id)
+          aliases[value] = id.to_i
           filter_ids << id
-          temp_ids << id
+          discovered_aliases << value
         end
-        ids -= temp_ids
+        ids -= discovered_aliases
       end
-      filter_ids << ids
+      filter_ids += ids
 
       render_aliases(self.class, aliases) if controller
 
