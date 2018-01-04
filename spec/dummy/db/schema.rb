@@ -18,8 +18,10 @@ ActiveRecord::Schema.define(version: 20180102155015) do
   create_table "articles", force: :cascade do |t|
     t.string "name"
     t.integer "article_type"
+    t.string "url", default: -> { "md5((random())::text)" }, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["url"], name: "index_articles_on_url"
   end
 
   create_table "comments", force: :cascade do |t|

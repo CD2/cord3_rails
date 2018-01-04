@@ -25,7 +25,7 @@ module Cord
             self.attribute association_name, options
 
             # self.macro association_name do |*attributes|
-            #   controller.load_records(api, get_attribute("#{single}_ids"), attributes)
+            #   load_records(api, get_attribute("#{single}_ids"), attributes) if controller
             # end
 
             self.meta association_name, children: "#{single}_ids"#, references: api
@@ -42,7 +42,7 @@ module Cord
             self.attribute association_name, options
 
             # self.macro association_name do |*attributes|
-            #   controller.load_records(api, [get_attribute("#{association_name}_id")], attributes)
+              # load_records(api, [get_attribute("#{association_name}_id")], attributes) if controller
             # end
 
             self.meta association_name, children: "#{association_name}_id"#, references: api
@@ -55,7 +55,7 @@ module Cord
             self.attribute association_name, options
 
             # self.macro association_name do |*attributes|
-            #   controller.load_records(api, [get_attribute("#{association_name}_id")], attributes)
+              # load_records(api, [get_attribute("#{association_name}_id")], attributes) if controller
             # end
 
             self.meta association_name, children: "#{association_name}_id"#, references: api

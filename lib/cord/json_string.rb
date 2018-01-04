@@ -1,7 +1,7 @@
 module Cord
   class JSONString
-    def initialize str
-      self.json = str
+    def initialize str = nil
+      self.json = str.to_s
     end
 
     def valid?
@@ -13,7 +13,7 @@ module Cord
     end
 
     def object= obj
-      @object = obj
+      @object = obj.as_json
       @json = obj.to_json
     end
 

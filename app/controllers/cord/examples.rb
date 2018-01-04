@@ -9,6 +9,11 @@ end
 class ArticlesApi < ApplicationApi
   default_scope &:published
 
+  alias_column :url
+  custom_alias :welcome do
+    current_store.articles.find_by!(machine_name: :welcome).id
+  end
+
   attribute :first_comment_id do |record|
     get_attribute(:comment_ids).first
   end

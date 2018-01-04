@@ -11,8 +11,9 @@ module Cord
         end
 
         def find_api_name value
-          # if is_api?(self) && model&.reflect_on_association(value)
-          # fill in class based on type of association
+          if is_api?(self) && (reflection = model&.reflect_on_association(value))
+            value = reflection.class_name
+          end
           value.to_s.camelcase.chomp('Api').pluralize + 'Api'
         end
 
@@ -34,6 +35,10 @@ module Cord
           api
         end
 
+        def is_record? obj
+          is_model?(obj.class)
+        end
+
         def is_model? obj
           obj.is_a?(Class) && obj < ActiveRecord::Base
         end
@@ -44,6 +49,10 @@ module Cord
 
         def normalize str
           str.to_s.downcase
+        end
+
+        def json_merge x, y
+          x.merge(y) { |_k, v1, v2| v1.is_a?(Hash) ? json_merge(v1, v2) : v1 + v2 }
         end
 
         def apply_scope driver, name, scope

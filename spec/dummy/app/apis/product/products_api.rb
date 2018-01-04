@@ -3,5 +3,6 @@ module Product
     model Product::Product
 
     has_many :variants
+    has_many :articles
   end
 end

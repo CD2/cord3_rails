@@ -3,36 +3,39 @@ module Cord
     include Helpers
 
     def respond
-      data = {}
+      data = Hash.new { |h, k| h[k] = {} }.with_indifferent_access
       Array.wrap(params[:_json]).each do |body|
         body = body.permit!.to_hash.with_indifferent_access
         api = find_api(body[:api])
-        data[api] = body
+        data[api] = json_merge(data[api], body)
       end
       @processing_queue = data.to_a
-      render json: process_queue
+      @cord_response = Hash.new { |h, k| h[k] = { ids: {}, records: [], actions: [], aliases: {} } }
+      process_queue
+
+      render json: formatted_response
     end
 
     def process_queue
-      response = []
       i = 0
       while @processing_queue[i] do
         api, body = @processing_queue[i]
-        response << process_blob(api, body)
+        blob = process_blob(api, body)
+        byebug
+        @cord_response[api] = json_merge(@cord_response[api], blob)
         i += 1
       end
-      response
     end
 
     def process_blob api, body
       api = load_api(api)
-      blob = { table: api.resource_name }
+      blob = {}
       ids = (body[:ids] || []).map { |x|
         [(x[:_id] || '_'), api.render_ids(x[:scopes], x[:query], x[:sort])]
       }.to_h
       blob[:ids] = ids
-      blob[:records] = (body[:records] || []).map do |x|
-        api.render_records x[:ids], x[:attributes]
+      blob[:records] = (body[:records] || []).inject([]) do |result, x|
+        result + api.render_records(x[:ids], x[:attributes])
       end
       blob[:actions] = (body[:actions] || []).map do |x|
         if x[:ids]
@@ -56,8 +59,40 @@ module Cord
     def load_records api, ids = [], attributes = []
       @processing_queue << [api, { records: [{ ids: ids, attributes: attributes }] }]
     end
+
+    def render_aliases api, aliases
+      @cord_response[api][:aliases].merge! aliases
+    end
+
+    def formatted_response
+      @cord_response.map do |api, data|
+        data[:table] = api.resource_name
+        data
+      end
+    end
   end
 end
+
+# The response format:
+#
+# {
+#   table: '',
+#   ids: { '' => [] },
+#   records: [ { id: 0, ... } ],
+#   actions: [ { _id: '', data: {} } ],
+#   aliases: { '' => 0 }
+# }
+
+# The processing format:
+#
+# {
+#   Api => {
+#     ids: { '' => [] },
+#     records: [ { id: 0, ... } ],
+#     actions: [ { _id: '', data: {} } ],
+#     aliases: { '' => 0 }
+#   }
+# }
 
 
 # actions first to ensure data changes are reflected in response

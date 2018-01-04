@@ -4,45 +4,24 @@ module Cord
       extend ActiveSupport::Concern
 
       included do
-        undelegated_methods = methods
+        include Cord::Stores
 
-        class << self
-          def default_scopes
-            @default_scopes ||= {}
-          end
+        hash_stores %i[
+          default_scopes scopes attributes macros meta_attributes member_actions collection_actions
+          custom_aliases
+        ]
 
-          def scopes
-            @scopes ||= {}
-          end
+        array_stores %i[
+          default_attributes alias_columns searchable_columns
+        ]
 
-          def attributes
-            @attributes ||= {}
-          end
-
-          def macros
-            @macros ||= {}
-          end
-
-          def meta_attributes
-            @meta_attributes ||= {}
-          end
-
-          def member_actions
-            @member_actions ||= {}
-          end
-
-          def collection_actions
-            @collection_actions ||= {}
-          end
-
-          def driver
-            default_scopes.inject(model.all) do |driver, scope|
-              apply_scope(driver, *scope)
-            end
+        def self.driver
+          @driver ||= default_scopes.inject(model.all) do |driver, scope|
+            apply_scope(driver, *scope)
           end
         end
 
-        delegate *(methods - undelegated_methods), to: :class
+        delegate :driver, to: :class
 
         class << self
           def model value = nil
@@ -50,15 +29,10 @@ module Cord
               raise ArgumentError, 'expected an ActiveRecord model' unless is_model?(value)
               @model = value
               @model.column_names.each { |name| attribute name }
-              default_attributes ['id']
+              default_attributes :id
+              scope :all
             end
             @model
-          end
-
-          def default_attributes *values
-            @default_attributes ||= []
-            @default_attributes += values.flatten if values.any?
-            @default_attributes
           end
 
           def resource_name value = nil
@@ -71,18 +45,15 @@ module Cord
 
           def default_scope name = nil, &block
             raise ArgumentError, 'must provide either a name or a block' unless name || block
-            name = normalize(name)
-            default_scopes[name] = block || ->(x){ x.send(name) }
+            default_scopes.add name, block
           end
 
           def scope name, &block
-            name = normalize(name)
-            scopes[name] = block || ->(x){ x.send(name) }
+            scopes.add name, block
           end
 
           def attribute name, options = {}, &block
-            name = normalize(name)
-            attributes[name] = block || ->(x){ x.send(name) }
+            attributes.add name, block
             meta name, options
           end
 
@@ -133,9 +104,8 @@ module Cord
             @context = temp_context
           end
 
-          def searchable_by *cols
-            @searchable_columns ||= []
-            @searchable_columns += cols
+          def custom_alias name, &block
+            custom_aliases.add name, block
           end
         end
       end
@@ -146,14 +116,6 @@ module Cord
 
       def resource_name
         self.class.resource_name
-      end
-
-      def default_attributes
-        self.class.default_attributes
-      end
-
-      def searchable_columns
-        self.class.searchable_by
       end
     end
   end

@@ -1,6 +1,7 @@
 require_relative 'crud'
 require_relative 'helpers'
 require_relative 'json_string'
+require_relative 'stores'
 
 Dir[Cord::Engine.root + './lib/cord/dsl/**/*.rb'].each { |file| require file }
 
@@ -30,6 +31,7 @@ module Cord
 
     def render_records ids, keywords = []
       @records_json = []
+      ids = prepare_ids(ids)
       records = driver.where(id: ids)
       records.each { |record| @records_json << render_record(record, keywords) }
       @records_json
@@ -99,6 +101,42 @@ module Cord
         i += 1
       end
       [keywords, options]
+    end
+
+    def prepare_ids ids
+      filter_ids = Set.new
+      aliases = {}
+
+      ids.map! do |x|
+        x = normalize(x)
+        if custom_aliases.has_key?(x)
+          result = instance_eval(&custom_aliases[x])
+          result = result.id if is_record?(result)
+          filter_ids << result
+          aliases[x] = result
+          nil
+        else
+          x
+        end
+      end
+
+      ids.compact!
+
+      alias_columns.each do |key|
+        temp_ids = []
+        key = normalize(key)
+        driver.where(key => ids).pluck('id', key).each do |id, value|
+          aliases[value] = id
+          filter_ids << id
+          temp_ids << id
+        end
+        ids -= temp_ids
+      end
+      filter_ids << ids
+
+      render_aliases(self.class, aliases) if controller
+
+      filter_ids.to_a
     end
 
     def method_missing *args, &block
