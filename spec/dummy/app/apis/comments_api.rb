@@ -1,6 +1,4 @@
 class CommentsApi < ApplicationApi
-  model Comment
-
   default_scope :all
 
   scope :scope1, &:all

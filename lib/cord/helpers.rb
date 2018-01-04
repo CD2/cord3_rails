@@ -35,6 +35,10 @@ module Cord
           api
         end
 
+        def model_from_api api = self
+          api.name.chomp('Api').singularize.constantize
+        end
+
         def is_record? obj
           is_model?(obj.class)
         end

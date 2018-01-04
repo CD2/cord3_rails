@@ -25,6 +25,7 @@ module Cord
 
         class << self
           def model value = nil
+            value ||= model_from_api unless @model
             if value
               raise ArgumentError, 'expected an ActiveRecord model' unless is_model?(value)
               @model = value

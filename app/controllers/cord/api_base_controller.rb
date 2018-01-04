@@ -21,7 +21,6 @@ module Cord
       while @processing_queue[i] do
         api, body = @processing_queue[i]
         blob = process_blob(api, body)
-        byebug
         @cord_response[api] = json_merge(@cord_response[api], blob)
         i += 1
       end
