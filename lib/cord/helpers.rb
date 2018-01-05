@@ -55,11 +55,11 @@ module Cord
         end
 
         def is_model? obj
-          obj.is_a?(Class) && obj < ActiveRecord::Base
+          obj.is_a?(Class) && obj < ::ActiveRecord::Base
         end
 
         def is_driver? obj
-          obj.is_a?(ActiveRecord::Relation)
+          obj.is_a?(::ActiveRecord::Relation)
         end
 
         def assert_driver obj
