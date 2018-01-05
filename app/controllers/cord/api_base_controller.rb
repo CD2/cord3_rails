@@ -66,6 +66,7 @@ module Cord
         end
         body[:_id] ? { _id: body[:_id], data: result, _errors: e } : { data: result, _errors: e }
       rescue Exception => e
+        error_log e
         body[:_id] ? { _id: body[:_id], data: {}, _errors: [e] } : { data: {}, _errors: [e] }
       end
     end
