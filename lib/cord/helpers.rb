@@ -23,10 +23,15 @@ module Cord
           begin
             api = namespaced_api_name.constantize
           rescue NameError => e
-            namespace ||= name
-            next_namespace = namespace.deconstantize
-            if next_namespace.present?
-              api = find_api(api_name, namespace: next_namespace)
+            case e.message
+            when /uninitialized constant #{namespaced_api_name}/
+              namespace ||= name
+              next_namespace = namespace.deconstantize
+              if next_namespace.present?
+                api = find_api(api_name, namespace: next_namespace)
+              else
+                raise e
+              end
             else
               raise e
             end
@@ -40,10 +45,20 @@ module Cord
           begin
             api = api_name.constantize
           rescue NameError => e
-            raise NameError, "api name '#{value}' was not matched (#{e})"
+            case e.message
+            when /uninitialized constant #{api_name}/, /wrong constant name #{api_name}/
+              raise NameError, "api name '#{value}' was not matched (#{e})"
+            else
+              raise e
+            end
           end
           raise NameError, "#{api} is not a Cord Api" unless is_api?(api)
           api
+        end
+
+        def error_log e
+          str = [nil, e.message, *e.backtrace, nil].join("\n")
+          respond_to?(:logger) ? logger.error(str) : puts(str)
         end
 
         def model_from_api api = self

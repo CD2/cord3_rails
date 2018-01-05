@@ -30,6 +30,7 @@ module Cord
         begin
           @calculated_attributes[name] = instance_exec(@record, &attributes[name])
         rescue Exception => e
+          error_log e
           @record_json[:_errors] << e
           nil
         end
@@ -41,6 +42,7 @@ module Cord
         begin
           instance_exec(*args, &macros[name])
         rescue Exception => e
+          error_log e
           @record_json[:_errors] << e
         end
       end

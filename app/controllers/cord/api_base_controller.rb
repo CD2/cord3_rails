@@ -15,8 +15,7 @@ module Cord
           api = strict_find_api(body[:api])
           data[api] = json_merge(data[api], body)
         rescue Exception => e
-          logger.error e.message
-          logger.error e.backtrace.join("\n")
+          error_log e
           @cord_response[:_errors] << e
         end
       end
@@ -52,6 +51,7 @@ module Cord
         end
         blob
       rescue Exception => e
+        error_log e
         { _errors: [e] }
       end
     end

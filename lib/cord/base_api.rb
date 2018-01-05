@@ -31,6 +31,7 @@ module Cord
         begin
           result[name] = apply_scope(records, name, self.class.scopes[name]).ids
         rescue Exception => e
+          error_log e
           result[:_errors][name] = e
         end
       end
