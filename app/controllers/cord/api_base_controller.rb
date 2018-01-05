@@ -10,7 +10,9 @@ module Cord
         data[api] = json_merge(data[api], body)
       end
       @processing_queue = data.to_a
-      @cord_response = Hash.new { |h, k| h[k] = { ids: {}, records: [], actions: [], aliases: {} } }
+      @cord_response = Hash.new do |h, k|
+        h[k] = { ids: {}, records: [], actions: [], aliases: {}, _errors: [] }
+      end
       process_queue
 
       render json: formatted_response
@@ -27,18 +29,22 @@ module Cord
     end
 
     def process_blob api, body
-      api = load_api(api)
-      blob = {}
-      blob[:ids] = (body[:ids] || []).inject({}) do |result, x|
-        result.merge process_ids(api, x)
+      begin
+        api = load_api(api)
+        blob = {}
+        blob[:ids] = (body[:ids] || []).inject({}) do |result, x|
+          result.merge process_ids(api, x)
+        end
+        blob[:records] = (body[:records] || []).inject([]) do |result, x|
+          result + api.render_records(x[:ids], x[:attributes])
+        end
+        blob[:actions] = (body[:actions] || []).map do |x|
+          cord_process_action(api, x)
+        end
+        blob
+      rescue Exception => e
+        { _errors: [e] }
       end
-      blob[:records] = (body[:records] || []).inject([]) do |result, x|
-        result + api.render_records(x[:ids], x[:attributes])
-      end
-      blob[:actions] = (body[:actions] || []).map do |x|
-        cord_process_action(api, x)
-      end
-      blob
     end
 
     def cord_process_action api, body

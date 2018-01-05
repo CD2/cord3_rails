@@ -1,6 +1,6 @@
 module Cord
   module DSL
-    module Records
+    module Keywords
       extend ActiveSupport::Concern
 
       private
@@ -27,17 +27,26 @@ module Cord
       def calculate_attribute(name)
         name = normalize(name)
         raise ArgumentError, "undefined attribute: '#{name}'" unless attributes[name]
-        @calculated_attributes[name] = instance_exec(@record, &attributes[name])
+        begin
+          @calculated_attributes[name] = instance_exec(@record, &attributes[name])
+        rescue Exception => e
+          @record_json[:_errors] << e
+          nil
+        end
       end
 
       def perform_macro(name, *args)
         name = normalize(name)
         raise ArgumentError, "undefined macro: '#{name}'" unless macros[name]
-        instance_exec(*args, &macros[name])
+        begin
+          instance_exec(*args, &macros[name])
+        rescue Exception => e
+          @record_json[:_errors] << e
+        end
       end
 
       def keyword_missing name
-        raise NameError, "'#{name}' does not match any keywords defined for #{self.class.name}"
+        @record_json[:_errors] << "'#{name}' does not match any keywords defined for #{self.class}"
       end
     end
   end

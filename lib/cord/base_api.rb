@@ -10,7 +10,7 @@ module Cord
     include DSL::Actions
     include DSL::Associations
     include DSL::Core
-    include DSL::Records
+    include DSL::Keywords
 
     include CRUD
     include Helpers
@@ -37,18 +37,18 @@ module Cord
       result
     end
 
-    def render_records ids, keywords = [], errors: []
+    def render_records ids, keywords = []
       @records_json = []
       ids = prepare_ids(ids)
       records = driver.where(id: ids)
-      records.each { |record| @records_json << render_record(record, keywords, errors: errors) }
+      records.each { |record| @records_json << render_record(record, keywords) }
       @records_json
     end
 
-    def render_record record, keywords = [], errors: []
+    def render_record record, keywords = []
       @keywords, @options = prepare_keywords(keywords)
       @record = record
-      @record_json = {}
+      @record_json = { _errors: [] }
       @calculated_attributes = {}
       @keywords.each do |keyword|
         if macros.has_key?(keyword)
@@ -74,9 +74,10 @@ module Cord
     end
 
     def perform_member_action record, name, data = {}, errors: []
+      temp_record = @record
       @record = record
       result = perform_action(name, data, errors: errors)
-      @record = nil
+      @record = temp_record
       result
     end
 

@@ -81,26 +81,25 @@ module Cord
           end
 
           def action name, &block
-            name = normalize(name)
-            context == :member ? member_actions[name] = block : collection_actions[name] = block
+            context.member? ? member_actions.add(name, block) : collection_actions.add(name, block)
           end
 
           attr_writer :context
 
           def context
-            @context ||= :member
+            @context ||= ActiveSupport::StringInquirer.new('member')
           end
 
           def collection
             temp_context = @context
-            @context = :collection
+            @context = ActiveSupport::StringInquirer.new('collection')
             yield
             @context = temp_context
           end
 
           def member
             temp_context = @context
-            @context = :member
+            @context = ActiveSupport::StringInquirer.new('member')
             yield
             @context = temp_context
           end
