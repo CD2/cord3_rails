@@ -36,7 +36,12 @@ module Cord
         end
 
         def strict_find_api value
-          api = (value.camelcase + 'Api').constantize
+          api_name = value.camelcase + 'Api'
+          begin
+            api = api_name.constantize
+          rescue NameError => e
+            raise NameError, "api name '#{value}' was not matched (#{e})"
+          end
           raise NameError, "#{api} is not a Cord Api" unless is_api?(api)
           api
         end
