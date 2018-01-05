@@ -3,16 +3,23 @@ module Cord
     include Helpers
 
     def respond
-      data = Hash.new { |h, k| h[k] = {} }.with_indifferent_access
-      Array.wrap(params[:_json]).each do |body|
-        body = body.permit!.to_hash.with_indifferent_access
-        api = strict_find_api(body[:api])
-        data[api] = json_merge(data[api], body)
-      end
-      @processing_queue = data.to_a
       @cord_response = Hash.new do |h, k|
         h[k] = { ids: {}, records: [], actions: [], aliases: {}, _errors: [] }
       end
+      @cord_response[:_errors] = []
+
+      data = Hash.new { |h, k| h[k] = {} }.with_indifferent_access
+      Array.wrap(params[:_json]).each do |body|
+        body = body.permit!.to_hash.with_indifferent_access
+        begin
+          api = strict_find_api(body[:api])
+          data[api] = json_merge(data[api], body)
+        rescue Exception => e
+          @cord_response[:_errors] << e
+        end
+      end
+      @processing_queue = data.to_a
+
       process_queue
 
       render json: formatted_response
@@ -78,10 +85,11 @@ module Cord
     end
 
     def formatted_response
-      @cord_response.map do |api, data|
+      result = @cord_response.except(:_errors).map do |api, data|
         data[:table] = api.resource_name
         data
       end
+      result << { table: :_errors, _errors: [@cord_response[:_errors]] }
     end
   end
 end
