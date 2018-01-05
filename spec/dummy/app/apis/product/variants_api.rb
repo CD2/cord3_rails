@@ -1,5 +1,3 @@
-module Product
-  class VariantsApi < ApplicationApi
-    belongs_to :product
-  end
+class Product::VariantsApi < ApplicationApi
+  belongs_to :product
 end

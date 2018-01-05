@@ -6,7 +6,7 @@ module Cord
       data = Hash.new { |h, k| h[k] = {} }.with_indifferent_access
       Array.wrap(params[:_json]).each do |body|
         body = body.permit!.to_hash.with_indifferent_access
-        api = find_api(body[:api])
+        api = strict_find_api(body[:api])
         data[api] = json_merge(data[api], body)
       end
       @processing_queue = data.to_a
@@ -17,23 +17,27 @@ module Cord
     end
 
     def process_queue
-      i = 0
-      while @processing_queue[i] do
-        api, body = @processing_queue[i]
+      @queue_position = 0
+      while @processing_queue[@queue_position] do
+        api, body = @processing_queue[@queue_position]
         blob = process_blob(api, body)
         @cord_response[api] = json_merge(@cord_response[api], blob)
-        i += 1
+        @queue_position += 1
       end
     end
 
     def process_blob api, body
       api = load_api(api)
       blob = {}
-      blob[:ids] = (body[:ids] || []).inject({}) { |result, x| result.merge process_ids(api, x) }
+      blob[:ids] = (body[:ids] || []).inject({}) do |result, x|
+        result.merge process_ids(api, x)
+      end
       blob[:records] = (body[:records] || []).inject([]) do |result, x|
         result + api.render_records(x[:ids], x[:attributes])
       end
-      blob[:actions] = (body[:actions] || []).map { |x| cord_process_action(api, x) }
+      blob[:actions] = (body[:actions] || []).map do |x|
+        cord_process_action(api, x)
+      end
       blob
     end
 
@@ -53,10 +57,6 @@ module Cord
 
     def process_ids api, body
       { (body[:_id] || '_') => api.render_ids(body[:scopes], body[:query], body[:sort]) }
-    end
-
-    def perform_actions *args
-
     end
 
     def load_ids api, *args

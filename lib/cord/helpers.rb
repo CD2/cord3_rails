@@ -14,7 +14,7 @@ module Cord
           if is_api?(self) && (reflection = model&.reflect_on_association(value))
             value = reflection.class_name
           end
-          value.to_s.camelcase.chomp('Api').pluralize + 'Api'
+          value.to_s.underscore.camelcase.chomp('Api').pluralize + 'Api'
         end
 
         def find_api value, namespace: nil
@@ -31,6 +31,12 @@ module Cord
               raise e
             end
           end
+          raise NameError, "#{api} is not a Cord Api" unless is_api?(api)
+          api
+        end
+
+        def strict_find_api value
+          api = (value.camelcase + 'Api').constantize
           raise NameError, "#{api} is not a Cord Api" unless is_api?(api)
           api
         end

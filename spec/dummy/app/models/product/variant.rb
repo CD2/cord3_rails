@@ -1,5 +1,3 @@
-module Product
-  class Variant < ApplicationRecord
-    belongs_to :product
-  end
+class Product::Variant < ApplicationRecord
+  belongs_to :product
 end
