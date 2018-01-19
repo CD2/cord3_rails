@@ -9,7 +9,7 @@ module Cord
       method_name = "#{name}="
       met = self.instance_method(method_name)
       define_method method_name do |val|
-        if val.length === 2 && (val.keys - ['data', 'name']).length === 0
+        if val.is_a?(Hash) && val.length === 2 && (val.keys - ['data', 'name']).length === 0
           self.image_url = val[:data]
           self.image.name = val[:name]
         else
