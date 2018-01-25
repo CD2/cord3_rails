@@ -41,8 +41,13 @@ module Cord
     def render_records ids, keywords = []
       @records_json = []
       ids = prepare_ids(ids)
-      records = driver.where(id: ids)
-      records.each { |record| @records_json << render_record(record, keywords) }
+      records = driver.where(id: ids.to_a)
+      records.each do |record|
+        result = render_record(record, keywords)
+        @records_json << result
+        ids.delete result['id'].to_s
+      end
+      ids.each { |id| @records_json << { id: id, _errors: ['not_found'] } }
       @records_json
     end
 
@@ -150,7 +155,7 @@ module Cord
 
       render_aliases(self.class, aliases) if controller
 
-      filter_ids.to_a
+      filter_ids
     end
 
     def method_missing *args, &block
