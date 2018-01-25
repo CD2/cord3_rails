@@ -80,7 +80,7 @@ module Cord
     end
 
     def load_records api, ids = [], attributes = []
-      @processing_queue << [api, { records: [{ ids: ids, attributes: attributes }] }]
+      add_queue_item api, { records: [{ ids: ids, attributes: attributes }] }
     end
 
     def render_aliases api, aliases
@@ -93,6 +93,30 @@ module Cord
         data
       end
       result << { table: :_errors, _errors: [@cord_response[:_errors]] }
+    end
+
+    def add_queue_item api, body
+      # unless (existing_item = @processing_queue.detect { |x| x[0] == api })
+        @processing_queue << [api, body]
+        return
+      # end
+      body.each do |k, v|
+        k = normalize(k)
+        existing_item[1][k] = send("safely_combine_#{k}", existing_item[1][k], v)
+      end
+    end
+
+    def safely_combine_ids a, b
+      return nil #unless a && b
+    end
+
+    def safely_combine_records old_requests, new_requests
+      return new_requests unless old_requests.present?
+
+    end
+
+    def safely_combine_actions a, b
+      return nil #unless a && b
     end
 
     # Given input of { api: [dependent_apis], api_name: [dependent_apis] ... }

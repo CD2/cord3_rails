@@ -47,8 +47,7 @@ module Cord
         @records_json << result
         ids.delete result['id'].to_s
       end
-      ids.each { |id| @records_json << { id: id, _errors: ['not found'] } }
-      @records_json
+      @records_json += ids.map { |id| { id: id, _errors: ['not found'] } }
     end
 
     def render_record record, keywords = []
