@@ -47,7 +47,7 @@ module Cord
         @records_json << result
         ids.delete result['id'].to_s
       end
-      ids.each { |id| @records_json << { id: id, _errors: ['not_found'] } }
+      ids.each { |id| @records_json << { id: id, _errors: ['not found'] } }
       @records_json
     end
 
