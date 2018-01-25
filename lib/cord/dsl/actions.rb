@@ -27,7 +27,7 @@ module Cord
       attr_reader :data
 
       def render data
-        raise 'Call to \'render\' after action chain has been halted' if @halted
+        raise 'call to \'render\' after action chain has been halted' if @halted
         @response.merge! data
       end
 

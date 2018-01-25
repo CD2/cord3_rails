@@ -75,7 +75,7 @@ module Cord
             meta = meta_attributes[name] ||= DEFAULT_META.deep_dup
             meta[:children] += Array.wrap(options[:children]).map { |x| normalize(x) }
             meta[:joins] += Array.wrap(options[:joins])
-            meta[:references] += Array.wrap(options[:references]).map { |x| find_api(x) }
+            meta[:references] += Array.wrap(options[:references]).map { |x| find_api_name(x) }
             meta[:sql] = options[:sql]
             meta
           end

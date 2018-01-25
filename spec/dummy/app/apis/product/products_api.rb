@@ -1,6 +1,5 @@
 class Product::ProductsApi < ApplicationApi
-  has_many :variants
-  has_many :articles
+  associations :variants, :articles
 
   scope(:raise) { raise 'an error' }
 

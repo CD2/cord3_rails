@@ -27,7 +27,7 @@ module Cord
               load_records(api, get_attribute("#{single}_ids"), attributes) if controller
             end
 
-            self.meta association_name, children: "#{single}_ids"#, references: api
+            self.meta association_name, children: "#{single}_ids", references: api_name
           end
 
           def has_one association_name, opts = {}
@@ -43,7 +43,7 @@ module Cord
               load_records(api, [get_attribute("#{association_name}_id")], attributes) if controller
             end
 
-            self.meta association_name, children: "#{association_name}_id"#, references: api
+            self.meta association_name, children: "#{association_name}_id", references: api_name
           end
 
           def belongs_to association_name, opts = {}
@@ -55,7 +55,21 @@ module Cord
               load_records(api, [get_attribute("#{association_name}_id")], attributes) if controller
             end
 
-            self.meta association_name, children: "#{association_name}_id"#, references: api
+            self.meta association_name, children: "#{association_name}_id", references: api_name
+          end
+
+          def associations *names
+            opts = names.extract_options!
+            names = Array.wrap(names[0]) if names.one?
+            names.each do |name|
+              unless (reflection = model.reflect_on_association(name)&.macro)
+                raise ArgumentError, "association '#{name}' was not found on #{model}"
+              end
+              unless reflection.in? %i[has_one has_many belongs_to]
+                raise ArgumentError, "unsupported association type: '#{reflection}'"
+              end
+              send reflection, name, opts
+            end
           end
         end
       end

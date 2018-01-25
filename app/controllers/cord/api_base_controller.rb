@@ -94,6 +94,39 @@ module Cord
       end
       result << { table: :_errors, _errors: [@cord_response[:_errors]] }
     end
+
+    # Given input of { api: [dependent_apis], api_name: [dependent_apis] ... }
+    # Returns [api, api] greedily ordered by constraint satisfaction
+
+    def order_blobs hash
+      graph = {}
+      hash.map do |k, v|
+        graph[k] ||= { incoming: [], outgoing: [] }
+        graph[k][:outgoing] += v
+        v.each do |outgoing|
+          graph[outgoing] ||= { incoming: [], outgoing: [] }
+          graph[outgoing][:incoming] << k
+        end
+      end
+
+      next_node = -> {
+        return nil unless graph.keys.any?
+        k, v = graph.sort_by { |(_k, v)| [v[:outgoing].size, 0 - v[:incoming].size] }[0]
+        v[:incoming].each { |incoming| graph[incoming][:outgoing] -= [k] }
+        v[:outgoing].each { |outgoing| graph[outgoing][:incoming] -= [k] }
+        graph.delete(k)
+        k
+      }
+
+      i = graph.length
+      list = Array.new(i)
+      while (k = next_node.call)
+        i -= 1
+        list[i] = k
+      end
+
+      list
+    end
   end
 end
 

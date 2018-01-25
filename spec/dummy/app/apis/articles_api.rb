@@ -6,5 +6,5 @@ class ArticlesApi < ApplicationApi
     'test'
   end
 
-  has_many :comments
+  associations :comments
 end

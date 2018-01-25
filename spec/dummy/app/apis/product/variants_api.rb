@@ -1,3 +1,3 @@
 class Product::VariantsApi < ApplicationApi
-  belongs_to :product
+  associations :product
 end
