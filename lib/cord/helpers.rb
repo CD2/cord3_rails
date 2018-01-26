@@ -104,8 +104,15 @@ module Cord
           x
         end
 
-        def json_inspect x, indent_level: 0, indent_str: '  ', max_width: nil, flat: false
+        def json_inspect x, options = {}
+          indent_level = options.fetch(:indent_level, 0)
+          indent_str = options.fetch(:indent_str, '  ')
+          indent_first = options.fetch(:indent_first, true)
+          max_width = options.fetch(:max_width, nil)
           max_width ||= `tput cols`.to_i
+          max_width_first = options.fetch(:max_width_first, max_width)
+          flat = options.fetch(:flat, false)
+
           indent = indent_str * indent_level
 
           flat_render = -> (x) {
@@ -121,42 +128,52 @@ module Cord
             )
           }
 
+          hash_nest_render = -> (x, n) {
+            json_inspect(
+              x,
+              indent_level: indent_level + 1,
+              indent_str: indent_str,
+              max_width: max_width - indent_str.size,
+              max_width_first: max_width - n,
+              indent_first: false
+            )
+          }
+
           if x.is_a?(Hash)
             inner = x.map do |k, v|
               k.is_a?(Symbol) ? "#{k}: #{flat_render[v]}" : "#{k.inspect} => #{flat_render[v]}"
             end
-            str = "#{indent}{ #{inner.join(', ')} }"
+            str = "#{indent_first ? indent : nil}{ #{inner.join(', ')} }"
 
-            if !flat && (str.size > max_width || str.include?("\n"))
-              str = [
-                "#{indent}{",
-                *x.map do |k, v|
-                  if k.is_a?(Symbol)
-                    "#{indent}#{indent_str}#{k}: #{flat_render[v]}"
-                  else
-                    "#{indent}#{indent_str}#{k.inspect} => #{flat_render[v]}"
-                  end
-                end,
-                "#{indent}}"
-              ].join("\n")
-            end
+            return str unless !flat && (str.size > max_width_first || str.include?("\n"))
 
-            return str
+            return [
+              "#{indent_first ? indent : nil}{",
+              *x.map do |k, v|
+                key_str = if k.is_a?(Symbol)
+                  "#{indent}#{indent_str}#{k}: "
+                else
+                  "#{indent}#{indent_str}#{k.inspect} => "
+                end
+                str = key_str + flat_render[v]
+                next str unless str.size > max_width
+                key_str + hash_nest_render[v, key_str.size]
+              end,
+              "#{indent}}"
+            ].join("\n")
           end
 
           if x.is_a?(Array)
             inner = x.map { |v| flat_render[v] }
-            str = "#{indent}[#{inner.join(', ')}]"
+            str = "#{indent_first ? indent : nil}[#{inner.join(', ')}]"
 
-            if !flat && (str.size > max_width || str.include?("\n"))
-              str = [
-                "#{indent}[",
-                *x.map { |v| "#{array_nest_render[v]}," },
-                "#{indent}]"
-              ].join("\n")
-            end
+            return str unless !flat && (str.size > max_width_first || str.include?("\n"))
 
-            return str
+            return [
+              "#{indent_first ? indent : nil}[",
+              *x.map { |v| "#{array_nest_render[v]}," },
+              "#{indent}]"
+            ].join("\n")
           end
 
           indent + x.inspect
