@@ -57,6 +57,7 @@ module Cord
         end
 
         def error_log e
+          raise e if Rails.env.development? && e.is_a?(SystemExit)
           str = [nil, e.message, *e.backtrace, nil].join("\n")
           respond_to?(:logger) ? logger.error(str) : puts(str)
         end
@@ -108,8 +109,7 @@ module Cord
           indent_level = options.fetch(:indent_level, 0)
           indent_str = options.fetch(:indent_str, '  ')
           indent_first = options.fetch(:indent_first, true)
-          max_width = options.fetch(:max_width, nil)
-          max_width ||= `tput cols`.to_i
+          max_width = options.fetch(:max_width, nil) || `tput cols`.to_i
           max_width_first = options.fetch(:max_width_first, max_width)
           flat = options.fetch(:flat, false)
 
