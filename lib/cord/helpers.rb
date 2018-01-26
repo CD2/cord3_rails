@@ -92,6 +92,76 @@ module Cord
           y
         end
 
+        def json_stringify x
+          return x.map { |v| json_stringify(v) } if x.is_a?(Array)
+          return x.map { |k, v| [k.to_s, json_stringify(v)] }.to_h if x.is_a?(Hash)
+          x.is_a?(Symbol) ? x.to_s : x
+        end
+
+        def json_symbolize x
+          return x.map { |v| json_symbolize(v) } if x.is_a?(Array)
+          return x.map { |k, v| [k.to_s.to_sym, json_symbolize(v)] }.to_h if x.is_a?(Hash)
+          x
+        end
+
+        def json_inspect x, indent_level: 0, indent_str: '  ', max_width: nil, flat: false
+          max_width ||= `tput cols`.to_i
+          indent = indent_str * indent_level
+
+          flat_render = -> (x) {
+            json_inspect(x, indent_str: indent_str, max_width: max_width, flat: true)
+          }
+
+          array_nest_render = -> (x) {
+            json_inspect(
+              x,
+              indent_level: indent_level + 1,
+              indent_str: indent_str,
+              max_width: max_width - indent_str.size,
+            )
+          }
+
+          if x.is_a?(Hash)
+            inner = x.map do |k, v|
+              k.is_a?(Symbol) ? "#{k}: #{flat_render[v]}" : "#{k.inspect} => #{flat_render[v]}"
+            end
+            str = "#{indent}{ #{inner.join(', ')} }"
+
+            if !flat && (str.size > max_width || str.include?("\n"))
+              str = [
+                "#{indent}{",
+                *x.map do |k, v|
+                  if k.is_a?(Symbol)
+                    "#{indent}#{indent_str}#{k}: #{flat_render[v]}"
+                  else
+                    "#{indent}#{indent_str}#{k.inspect} => #{flat_render[v]}"
+                  end
+                end,
+                "#{indent}}"
+              ].join("\n")
+            end
+
+            return str
+          end
+
+          if x.is_a?(Array)
+            inner = x.map { |v| flat_render[v] }
+            str = "#{indent}[#{inner.join(', ')}]"
+
+            if !flat && (str.size > max_width || str.include?("\n"))
+              str = [
+                "#{indent}[",
+                *x.map { |v| "#{array_nest_render[v]}," },
+                "#{indent}]"
+              ].join("\n")
+            end
+
+            return str
+          end
+
+          indent + x.inspect
+        end
+
         def apply_scope driver, name, scope
           assert_driver(driver)
           result = instance_exec(driver, &scope)

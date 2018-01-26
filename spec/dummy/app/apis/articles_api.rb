@@ -6,5 +6,7 @@ class ArticlesApi < ApplicationApi
     'test'
   end
 
+  searchable_columns :name
+
   associations :comments
 end

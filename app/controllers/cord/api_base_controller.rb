@@ -8,9 +8,9 @@ module Cord
       end
       @cord_response[:_errors] = []
 
-      data = Hash.new { |h, k| h[k] = {} }.with_indifferent_access
+      data = Hash.new { |h, k| h[k] = {} }
       Array.wrap(params[:_json]).each do |body|
-        body = body.permit!.to_hash.with_indifferent_access
+        body = json_symbolize(body.permit!.to_hash)
         begin
           api = strict_find_api(body[:api])
           data[api] = json_merge(data[api], body)
@@ -19,7 +19,14 @@ module Cord
           @cord_response[:_errors] << e
         end
       end
-      @processing_queue = data.to_a
+
+      @processing_queue = []
+      @queue_position = 0
+      @processed_queue_items = []
+
+      data.each do |k, v|
+        add_queue_item(k, v)
+      end
 
       process_queue
 
@@ -27,11 +34,11 @@ module Cord
     end
 
     def process_queue
-      @queue_position = 0
       while @processing_queue[@queue_position] do
         api, body = @processing_queue[@queue_position]
         blob = process_blob(api, body)
         @cord_response[api] = json_merge(@cord_response[api], blob)
+        @processed_queue_items << @processing_queue[@queue_position]
         @queue_position += 1
       end
     end
@@ -96,27 +103,51 @@ module Cord
     end
 
     def add_queue_item api, body
-      # unless (existing_item = @processing_queue.detect { |x| x[0] == api })
-        @processing_queue << [api, body]
-        return
-      # end
+      unless (existing_item = @processing_queue[@queue_position..-1].detect { |x| x[0] == api })
+        existing_item = [api, {}]
+        @processing_queue << existing_item
+      end
       body.each do |k, v|
-        k = normalize(k)
-        existing_item[1][k] = send("safely_combine_#{k}", existing_item[1][k], v)
+        next unless k.in? %i[records ids actions]
+        existing_item[1][k] ||= []
+        next existing_item[1][k] += v unless k == :records
+        existing_item[1][k] = safely_combine_records(existing_item[1][k], v)
       end
     end
 
-    def safely_combine_ids a, b
-      return nil #unless a && b
-    end
-
     def safely_combine_records old_requests, new_requests
-      return new_requests unless old_requests.present?
+      is_subset = -> (a, b) {
+        (a[:attributes] & b[:attributes]) == b[:attributes] && (a[:ids] & b[:ids]) == b[:ids]
+      }
 
-    end
+      new_requests.each do |new_request|
+        merged = false
+        old_requests = old_requests.map do |old_request|
+          next old_request if merged
 
-    def safely_combine_actions a, b
-      return nil #unless a && b
+          if new_request[:ids] == old_request[:ids]
+            if new_request[:attributes] == old_request[:attributes]
+              merged = true
+            else
+              old_request[:attributes] = (old_request[:attributes] + new_request[:attributes]).uniq
+              merged = true
+            end
+          elsif new_request[:attributes] == old_request[:attributes]
+            old_request[:ids] = (old_request[:ids] + new_request[:ids]).uniq
+            merged = true
+          elsif is_subset[old_request, new_request]
+            merged = true
+          elsif is_subset[new_request, old_request]
+            old_request[:ids] = new_request[:ids]
+            old_request[:attributes] = new_request[:attributes]
+            merged = true
+          end
+          old_request
+        end
+        old_requests << new_request unless merged
+      end
+
+      old_requests
     end
 
     # Given input of { api: [dependent_apis], api_name: [dependent_apis] ... }

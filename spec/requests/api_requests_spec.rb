@@ -10,7 +10,7 @@ RSpec.describe 'Cord::ApiBaseController' do
   end
 
   def response_body
-    @body ||= JSON.parse(response.body).map &:with_indifferent_access
+    @body ||= ApplicationApi.json_symbolize(JSON.parse(response.body))
   end
 
   describe 'uses strict matching to find the requested api' do
