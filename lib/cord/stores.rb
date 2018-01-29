@@ -7,7 +7,7 @@ module Cord
         names = Array.wrap(names[0]) if names.one?
         names.each do |name|
           eval <<-RUBY
-            def self.#{name}
+            def self.#{name} *values
               return @#{name} if @#{name}
               @#{name} = (self == Cord::BaseApi ? {} : superclass.#{name}.deep_dup)
 
@@ -30,6 +30,8 @@ module Cord
               def @#{name}.[]= key, value
                 super ::Cord::BaseApi.normalize(key), value
               end
+
+              @#{name}.add values
 
               @#{name}
             end
@@ -56,6 +58,8 @@ module Cord
               def @#{name}.remove *names
                 replace(self - names.flatten.map { |x| ::Cord::BaseApi.normalize(x) })
               end
+
+              @#{name}.add values
 
               @#{name}
             end
