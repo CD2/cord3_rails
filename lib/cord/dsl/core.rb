@@ -29,7 +29,13 @@ module Cord
             if value
               raise ArgumentError, 'expected an ActiveRecord model' unless is_model?(value)
               @model = value
-              @model.column_names.each { |name| attribute name }
+              @model.column_names.each do |name|
+                sql = %("#{@model.table_name}"."#{name}")
+                if (enum = @model.defined_enums[name])
+                  sql = %('#{enum.invert.to_json}'::jsonb->#{sql}::text)
+                end
+                attribute name, sql: sql
+              end
               default_attributes :id
               scope :all
             end

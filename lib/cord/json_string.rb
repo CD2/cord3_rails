@@ -32,6 +32,10 @@ module Cord
       object
     end
 
+    def to_s
+      json
+    end
+
     def inspect
       json
     end

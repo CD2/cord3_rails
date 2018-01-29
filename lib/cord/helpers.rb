@@ -80,11 +80,20 @@ module Cord
 
         def assert_driver obj
           return if is_driver?(obj)
-          raise ArgumentError, "expected an ActiveRecord::Relation, instead got '#{obj.class}'"
+          raise ArgumentError, "expected an ActiveRecord::Relation, instead got #{obj.class}"
         end
 
         def normalize str
           str.to_s.downcase
+        end
+
+        def driver_to_json driver
+          assert_driver(driver)
+          return JSONString.new('[]') if driver.to_sql.blank?
+          response = ::ActiveRecord::Base.connection.execute(
+            "SELECT array_to_json(array_agg(json)) FROM (#{driver.order(:id).to_sql}) AS json"
+          )
+          JSONString.new(response.values.first.first || '[]')
         end
 
         def json_merge x, y
