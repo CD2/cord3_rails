@@ -17,7 +17,7 @@ module Cord
 
     attr_reader :controller
 
-    default_attributes = [:id]
+    self.default_attributes = [:id]
 
     def render_ids scopes, search = nil, sort = nil
       result = { _errors: {} }
