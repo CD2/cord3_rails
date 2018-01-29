@@ -36,7 +36,6 @@ module Cord
                 end
                 attribute name, sql: sql
               end
-              default_attributes :id
               scope :all
             end
             @model
@@ -52,15 +51,15 @@ module Cord
 
           def default_scope name = nil, &block
             raise ArgumentError, 'must provide either a name or a block' unless name || block
-            default_scopes.add name, block
+            default_scopes.add name, &block
           end
 
           def scope name, &block
-            scopes.add name, block
+            scopes.add name, &block
           end
 
           def attribute name, options = {}, &block
-            attributes.add name, block
+            attributes.add name, &block
             meta name, options
           end
 
@@ -87,7 +86,11 @@ module Cord
           end
 
           def action name, &block
-            context.member? ? member_actions.add(name, block) : collection_actions.add(name, block)
+            if context.member?
+              member_actions.add(name, &block)
+            else
+              collection_actions.add(name, &block)
+            end
           end
 
           attr_writer :context
@@ -111,7 +114,7 @@ module Cord
           end
 
           def custom_alias name, &block
-            custom_aliases.add name, block
+            custom_aliases.add name, &block
           end
         end
       end

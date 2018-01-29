@@ -4,4 +4,6 @@ class ApplicationApi < Cord::BaseApi
   # before_action :zzz, only: 5 do
   #   puts 5
   # end
+
+  default_scope(:abc) { |driver| driver.where('true') }
 end

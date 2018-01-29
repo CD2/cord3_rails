@@ -9,12 +9,33 @@ module Cord
           eval <<-RUBY
             def self.#{name}
               return @#{name} if @#{name}
-              @#{name} = {}
-              def @#{name}.add name, block = nil
-                name = ::Cord::BaseApi.normalize(name)
-                self[name] = block || ->(x){ x.send(name) }
+              @#{name} = (self == Cord::BaseApi ? {} : superclass.#{name}.deep_dup)
+
+              def @#{name}.add *names, &block
+                names.flatten.each do |name|
+                  self[name] = block || ->(x){ x.send(name) }
+                end
               end
+
+              def @#{name}.remove *names
+                names.flatten.map { |x| ::Cord::BaseApi.normalize(x) }.each do |name|
+                  delete(name)
+                end
+              end
+
+              def @#{name}.[] key
+                super ::Cord::BaseApi.normalize(key)
+              end
+
+              def @#{name}.[]= key, value
+                super ::Cord::BaseApi.normalize(key), value
+              end
+
               @#{name}
+            end
+
+            def self.#{name}= value
+              #{name}.replace(value.keys.map { |k| [normalize(k), value[k]] }.to_h)
             end
           RUBY
           delegate name, to: :class
@@ -25,10 +46,22 @@ module Cord
         names = Array.wrap(names[0]) if names.one?
         names.each do |name|
           eval <<-RUBY
-            def self.#{name} *values
-              @#{name} ||= []
-              @#{name} += values.flatten.map { |x| ::Cord::BaseApi.normalize(x) } if values.any?
+            def self.#{name}
+              @#{name} ||= (self == Cord::BaseApi ? [] : superclass.#{name}.deep_dup)
+
+              def @#{name}.add *names
+                replace(self | names.flatten.map { |x| ::Cord::BaseApi.normalize(x) })
+              end
+
+              def @#{name}.remove *names
+                replace(self - names.flatten.map { |x| ::Cord::BaseApi.normalize(x) })
+              end
+
               @#{name}
+            end
+
+            def self.#{name}= value
+              #{name}.replace(value.map { |x| normalize(x) })
             end
 
             def #{name}
