@@ -89,11 +89,39 @@ module Cord
 
         def driver_to_json driver
           assert_driver(driver)
+
           return JSONString.new('[]') if driver.to_sql.blank?
-          response = ::ActiveRecord::Base.connection.execute(
-            "SELECT array_to_json(array_agg(json)) FROM (#{driver.order(:id).to_sql}) AS json"
-          )
+
+          response = ::ActiveRecord::Base.connection.execute <<-SQL.squish
+            SELECT
+              array_to_json(array_agg(json))
+            FROM
+              (#{driver.order(:id).to_sql}) AS json
+          SQL
+
           JSONString.new(response.values.first.first || '[]')
+        end
+
+        def driver_to_json_with_missing_ids driver, ids
+          assert_driver(driver)
+
+          return [JSONString.new('[]'), ids] if driver.to_sql.blank?
+
+          response = ::ActiveRecord::Base.connection.execute <<-SQL.squish
+            SELECT
+              array_to_json(array_agg(json)),
+              array_agg(json.id)
+            FROM
+              (#{driver.order(:id).to_sql}) AS json
+          SQL
+
+          json = JSONString.new(response.values.first.first || '[]')
+
+          if found_ids = response.values.first.last
+            ids -= (found_ids[1...-1].split(','))
+          end
+
+          [json, ids]
         end
 
         def json_merge x, y

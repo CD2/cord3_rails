@@ -17,6 +17,10 @@ module Cord
       @json = obj.to_json
     end
 
+    def object?
+      !!@object
+    end
+
     attr_reader :json
 
     def json= str

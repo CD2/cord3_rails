@@ -100,6 +100,7 @@ module Cord
         data
       end
       result << { table: :_errors, _errors: [@cord_response[:_errors]] }
+      JSON.generate result
     end
 
     def add_queue_item api, body

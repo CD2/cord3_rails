@@ -43,32 +43,25 @@ module Cord
     def render_records ids, keywords = []
       @records_json = []
       ids = prepare_ids(ids)
-      records = driver.where(id: ids.to_a)
-      records.each do |record|
-        result = render_record(record, keywords)
-        @records_json << result
-        ids.delete result['id'].to_s
-      end
-      @records_json += ids.map { |id| { id: id, _errors: ['not found'] } }
-    end
-
-    def render_record record, keywords = []
       @keywords, @options = prepare_keywords(keywords)
-      @record = record
-      @record_json = { _errors: [] }
-      @calculated_attributes = {}
-      @keywords.each do |keyword|
-        if macros.has_key?(keyword)
-          perform_macro(keyword, *(@options[keyword] || []))
-        elsif attributes.has_key?(keyword)
-          @record_json[keyword] = render_attribute(keyword)
-        else
-          keyword_missing(keyword)
+      records = driver.where(id: ids.to_a)
+
+      if @keywords.all? { |x| type_of_keyword(x) == :field }
+        # Use Postgres to generate the JSON
+        selects = @keywords.map { |keyword| %(#{meta_attributes[keyword][:sql]} AS "#{keyword}") }
+        @records_json, ids = driver_to_json_with_missing_ids(records.select(selects), ids.to_a)
+      else
+        # Use Ruby to generate the JSON
+        records.each do |record|
+          result = render_record(record)
+          @records_json << result
+          ids.delete result['id'].to_s
         end
       end
-      result = @record_json
-      @record, @record_json, @calculated_attributes, @keywords, @options = nil
-      result
+
+      @keywords, @options = nil
+      @records_json += ids.map { |id| { id: id, _errors: ['not found'] } } if ids.any?
+      @records_json
     end
 
     def perform_bulk_member_action ids, name, data = {}, errors: []
@@ -96,6 +89,25 @@ module Cord
 
     def initialize controller = nil
       @controller = controller
+    end
+
+    def render_record record
+      @record = record
+      @record_json = { _errors: [] }
+      @calculated_attributes = {}
+      @keywords.each do |keyword|
+        case type_of_keyword(keyword)
+        when :macro
+          perform_macro(keyword, *(@options[keyword] || []))
+        when :attribute, :field
+          @record_json[keyword] = render_attribute(keyword)
+        else
+          keyword_missing(keyword)
+        end
+      end
+      result = @record_json
+      @record, @record_json, @calculated_attributes = nil
+      result
     end
 
     def prepare_keywords keywords
@@ -157,6 +169,14 @@ module Cord
       render_aliases(self.class, aliases) if controller
 
       filter_ids
+    end
+
+    def type_of_keyword keyword
+      return :macro if macros.has_key?(keyword)
+      if attributes.has_key?(keyword)
+        return :field if meta_attributes.dig(keyword, :sql)
+        :attribute
+      end
     end
 
     def method_missing *args, &block
