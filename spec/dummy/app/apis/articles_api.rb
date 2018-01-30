@@ -8,5 +8,5 @@ class ArticlesApi < ApplicationApi
 
   searchable_columns.add :name
 
-  associations :comments
+  associations :comments, :image
 end

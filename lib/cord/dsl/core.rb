@@ -70,7 +70,7 @@ module Cord
             meta name, options
           end
 
-          DEFAULT_META = { children: [], joins: [], references: [], sql: nil }
+          DEFAULT_META = { children: [], references: [], joins: nil, sql: nil }
 
           def meta name, opts = {}
             options = opts.to_options
@@ -79,8 +79,8 @@ module Cord
             Array.wrap(options[:parents]).each { |parent| self.meta parent, children: name }
             meta = meta_attributes[name] ||= DEFAULT_META.deep_dup
             meta[:children] += Array.wrap(options[:children]).map { |x| normalize(x) }
-            meta[:joins] += Array.wrap(options[:joins])
             meta[:references] += Array.wrap(options[:references]).map { |x| find_api_name(x) }
+            meta[:joins] = options[:joins]
             meta[:sql] = options[:sql]
             meta
           end

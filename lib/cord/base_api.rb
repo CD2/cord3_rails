@@ -48,8 +48,10 @@ module Cord
 
       if @keywords.all? { |x| type_of_keyword(x) == :field }
         # Use Postgres to generate the JSON
+        joins = @keywords.map { |keyword| meta_attributes[keyword][:joins] }.compact
         selects = @keywords.map { |keyword| %(#{meta_attributes[keyword][:sql]} AS "#{keyword}") }
-        @records_json, ids = driver_to_json_with_missing_ids(records.select(selects), ids.to_a)
+        records = records.joins(joins).select(selects)
+        @records_json, ids = driver_to_json_with_missing_ids(records, ids.to_a)
       else
         # Use Ruby to generate the JSON
         records.each do |record|

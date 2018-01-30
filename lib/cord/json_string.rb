@@ -41,7 +41,17 @@ module Cord
     end
 
     def inspect
-      json
+      if @pretty
+        @pretty = false
+        "\n" + ::Cord::BaseApi.json_inspect(object)
+      else
+        json
+      end
+    end
+
+    def pretty
+      @pretty = true
+      self
     end
 
     def method_missing name, *args, &block

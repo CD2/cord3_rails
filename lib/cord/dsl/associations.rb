@@ -9,9 +9,28 @@ module Cord
             options = opts.to_options
             api_name = options.delete(:api)&.to_s || find_api_name(association_name)
             single = association_name.to_s.singularize
+            reflection = model.reflect_on_association(association_name)
 
             self.attribute "#{single}_ids", options do |record|
               record.send(association_name).ids
+            end
+
+            if reflection&.macro == :has_many
+              query = model.left_joins(association_name).group(:id).select <<-SQL.squish
+                "#{model.table_name}"."id",
+                array_remove(array_agg("#{reflection.table_name}"."id"), NULL) AS "#{single}_ids"
+              SQL
+
+              joins = <<-SQL.squish
+                LEFT JOIN (#{query.to_sql}) AS "#{single}_ids_query"
+                ON "#{single}_ids_query"."id" = "#{model.table_name}"."id"
+              SQL
+
+              self.meta(
+                "#{single}_ids",
+                joins: joins,
+                sql: %("#{single}_ids_query"."#{single}_ids")
+              )
             end
 
             self.attribute "#{single}_count", options do |record|
@@ -20,6 +39,24 @@ module Cord
               else
                 record.send(association_name).size
               end
+            end
+
+            if reflection&.macro == :has_many
+              query = model.left_joins(association_name).group(:id).select <<-SQL.squish
+                "#{model.table_name}"."id",
+                COUNT("#{reflection.table_name}"."id") AS "#{single}_count"
+              SQL
+
+              joins = <<-SQL.squish
+                LEFT JOIN (#{query.to_sql}) AS "#{single}_count_query"
+                ON "#{single}_count_query"."id" = "#{model.table_name}"."id"
+              SQL
+
+              self.meta(
+                "#{single}_count",
+                joins: joins,
+                sql: %("#{single}_count_query"."#{single}_count")
+              )
             end
 
             self.macro association_name do |*attributes|
@@ -33,9 +70,28 @@ module Cord
           def has_one association_name, opts = {}
             options = opts.to_options
             api_name = options.delete(:api)&.to_s || find_api_name(association_name)
+            reflection = model.reflect_on_association(association_name)
 
             self.attribute "#{association_name}_id", options do |record|
               record.send(association_name)&.id
+            end
+
+            if reflection&.macro == :has_one
+              query = model.left_joins(association_name).group(:id).select <<-SQL.squish
+                "#{model.table_name}"."id",
+                (array_agg("#{reflection.table_name}"."id"))[1] AS "#{association_name}_id"
+              SQL
+
+              joins = <<-SQL.squish
+                LEFT JOIN (#{query.to_sql}) AS "#{association_name}_id_query"
+                ON "#{association_name}_id_query"."id" = "#{model.table_name}"."id"
+              SQL
+
+              self.meta(
+                "#{association_name}_id",
+                joins: joins,
+                sql: %("#{association_name}_id_query"."#{association_name}_id")
+              )
             end
 
             self.macro association_name do |*attributes|
