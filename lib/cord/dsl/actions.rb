@@ -14,6 +14,14 @@ module Cord
               collection_actions.add(name, &block)
             end
           end
+
+          def collection_action name, &block
+            collection_actions.add(name, &block)
+          end
+
+          def member_action name, &block
+            member_actions.add(name, &block)
+          end
         end
       end
 
