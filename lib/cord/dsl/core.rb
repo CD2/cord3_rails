@@ -4,26 +4,16 @@ module Cord
       extend ActiveSupport::Concern
 
       included do
-        include Cord::Stores
-
-        hash_stores %i[
-          default_scopes scopes attributes macros meta_attributes member_actions collection_actions
-          custom_aliases
-        ]
-
-        array_stores %i[
-          default_attributes alias_columns searchable_columns
-        ]
-
-        def self.driver
-          @driver ||= default_scopes.inject(model.all) do |driver, scope|
-            apply_scope(driver, *scope)
-          end
-        end
-
-        delegate :driver, to: :class
+        hash_stores %i[default_scopes scopes custom_aliases]
+        array_stores %i[alias_columns searchable_columns]
 
         class << self
+          def driver
+            @driver ||= default_scopes.inject(model.all) do |driver, scope|
+              apply_scope(driver, *scope)
+            end
+          end
+
           def model value = nil
             value ||= model_from_api unless @model
             if value
@@ -58,41 +48,6 @@ module Cord
             scopes.add name, &block
           end
 
-          def attribute name, options = {}, &block
-            attributes.add name, &block
-            meta name, options
-          end
-
-          def macro name, options = {}, &block
-            raise ArgumentError, 'macros require a block' unless block
-            name = normalize(name)
-            macros[name] = block
-            meta name, options
-          end
-
-          DEFAULT_META = { children: [], references: [], joins: nil, sql: nil }
-
-          def meta name, opts = {}
-            options = opts.to_options
-            options.assert_valid_keys(:children, :joins, :parents, :references, :sql)
-            name = normalize(name)
-            Array.wrap(options[:parents]).each { |parent| self.meta parent, children: name }
-            meta = meta_attributes[name] ||= DEFAULT_META.deep_dup
-            meta[:children] += Array.wrap(options[:children]).map { |x| normalize(x) }
-            meta[:references] += Array.wrap(options[:references]).map { |x| find_api_name(x) }
-            meta[:joins] = options[:joins]
-            meta[:sql] = options[:sql]
-            meta
-          end
-
-          def action name, &block
-            if context.member?
-              member_actions.add(name, &block)
-            else
-              collection_actions.add(name, &block)
-            end
-          end
-
           attr_writer :context
 
           def context
@@ -118,6 +73,8 @@ module Cord
           end
         end
       end
+
+      delegate :driver, to: :class
 
       def model
         self.class.model

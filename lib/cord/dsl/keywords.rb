@@ -3,6 +3,40 @@ module Cord
     module Keywords
       extend ActiveSupport::Concern
 
+      included do
+        hash_stores %i[attributes macros meta_attributes]
+        array_stores :default_attributes
+
+        class << self
+          def attribute name, options = {}, &block
+            attributes.add name, &block
+            meta name, options
+          end
+
+          def macro name, options = {}, &block
+            raise ArgumentError, 'macros require a block' unless block
+            name = normalize(name)
+            macros[name] = block
+            meta name, options
+          end
+
+          DEFAULT_META = { children: [], references: [], joins: nil, sql: nil }
+
+          def meta name, opts = {}
+            options = opts.to_options
+            options.assert_valid_keys(:children, :joins, :parents, :references, :sql)
+            name = normalize(name)
+            Array.wrap(options[:parents]).each { |parent| self.meta parent, children: name }
+            meta = meta_attributes[name] ||= DEFAULT_META.deep_dup
+            meta[:children] += Array.wrap(options[:children]).map { |x| normalize(x) }
+            meta[:references] += Array.wrap(options[:references]).map { |x| find_api_name(x) }
+            meta[:joins] = options[:joins]
+            meta[:sql] = options[:sql]
+            meta
+          end
+        end
+      end
+
       private
 
       def requested? keyword
@@ -49,6 +83,15 @@ module Cord
 
       def keyword_missing name
         @record_json[:_errors] << "'#{name}' does not match any keywords defined for #{self.class}"
+      end
+
+      def type_of_keyword name
+        name = normalize(name)
+        return :macro if macros.has_key?(name)
+        if attributes.has_key?(name)
+          return :field if meta_attributes.dig(name, :sql)
+          :attribute
+        end
       end
     end
   end

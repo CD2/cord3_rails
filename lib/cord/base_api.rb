@@ -1,4 +1,3 @@
-require_relative 'crud'
 require_relative 'helpers'
 require_relative 'json_string'
 require_relative 'stores'
@@ -7,17 +6,22 @@ Dir[Cord::Engine.root + './lib/cord/dsl/**/*.rb'].each { |file| require file }
 
 module Cord
   class BaseApi
+    include Stores
+
+    include DSL::Core
+
     include DSL::Actions
     include DSL::Associations
-    include DSL::Core
+    include DSL::BeforeActions
+    include DSL::CRUD
     include DSL::Keywords
 
-    include CRUD
     include Helpers
 
     attr_reader :controller
 
     self.default_attributes = [:id]
+    self.crud_callbacks = CRUD_CALLBACKS.map { |x| [x, proc {}]}.to_h
 
     def render_ids scopes, search = nil, sort = nil
       result = { _errors: {} }
@@ -64,27 +68,6 @@ module Cord
       @keywords, @options = nil
       @records_json += ids.map { |id| { id: id, _errors: ['not found'] } } if ids.any?
       @records_json
-    end
-
-    def perform_bulk_member_action ids, name, data = {}, errors: []
-      @actions_json = []
-      records = driver.where(id: ids)
-      records.each do |record|
-        @actions_json << perform_member_action(record, name, data, errors: errors)
-      end
-      @actions_json
-    end
-
-    def perform_member_action record, name, data = {}, errors: []
-      temp_record = @record
-      @record = record
-      result = perform_action(name, data, errors: errors)
-      @record = temp_record
-      result
-    end
-
-    def perform_collection_action name, data = {}, errors: []
-      perform_action(name, data, errors: errors)
     end
 
     private
@@ -171,14 +154,6 @@ module Cord
       render_aliases(self.class, aliases) if controller
 
       filter_ids
-    end
-
-    def type_of_keyword keyword
-      return :macro if macros.has_key?(keyword)
-      if attributes.has_key?(keyword)
-        return :field if meta_attributes.dig(keyword, :sql)
-        :attribute
-      end
     end
 
     def method_missing *args, &block
