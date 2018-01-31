@@ -25,52 +25,66 @@ module Cord
         end
       end
 
-      def perform_bulk_member_action ids, name, data = {}, errors: []
+      def perform_bulk_member_action ids, name, data = {}, errors: nil, before_actions: false
         @actions_json = []
         records = driver.where(id: ids)
         records.each do |record|
-          @actions_json << perform_member_action(record, name, data, errors: errors)
+          @actions_json << perform_member_action(
+            record, name, data, errors: errors, before_actions: before_actions
+          )
         end
         @actions_json
       end
 
-      def perform_member_action record, name, data = {}, errors: []
+      def perform_member_action record, name, data = {}, errors: nil, before_actions: false
         temp_record = @record
         @record = record
-        result = perform_action(name, data, errors: errors)
+        result = perform_action(name, data, errors: errors, before_actions: before_actions)
         @record = temp_record
         result
       end
 
-      def perform_collection_action name, data = {}, errors: []
+      def perform_collection_action name, data = {}, errors: nil, before_actions: false
         temp_record = @record
         @record = nil
-        result = perform_action(name, data, errors: errors)
+        result = perform_action(name, data, errors: errors, before_actions: before_actions)
         @record = temp_record
         result
       end
 
       private
 
-      def perform_action(name, data, errors: [])
+      def perform_action(name, data = nil, errors: nil, before_actions: false)
+        data ||= {}
         name = normalize(name)
-        @data = ActionController::Parameters.new(data) if data
+
+        temp_response = @response
+        temp_data = @data
+
+        unless (nested = !(@errors.nil? && @halted.nil?))
+          @errors = errors || []
+          @halted = false
+        end
+
+        @data = ActionController::Parameters.new(data)
         @response = {}
-        @errors = errors
-        @halted = false
+
         if @record
           action = member_actions[name]
           raise ArgumentError, "undefined member action: '#{name}'" unless action
-          perform_before_actions(name)
+          perform_before_actions(name) if before_actions
           instance_exec(@record, &action) unless halted?
         else
           action = collection_actions[name]
           raise ArgumentError, "undefined collection action: '#{name}'" unless action
-          perform_before_actions(name)
+          perform_before_actions(name) if before_actions
           instance_exec(&action) unless halted?
         end
+
         result = @response
-        @data, @response, @errors, @halted = nil
+        @errors, @halted = nil unless nested
+        @response = temp_response
+        @data = temp_data
         result
       end
 
@@ -97,7 +111,7 @@ module Cord
 
       def halt! message = nil
         return if halted?
-        @response = nil
+        @response = {}
         error message if message
         @halted = true
       end

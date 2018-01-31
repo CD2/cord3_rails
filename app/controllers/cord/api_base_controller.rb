@@ -67,9 +67,20 @@ module Cord
       begin
         e = []
         if body[:ids]
-          result = api.perform_bulk_member_action(body[:ids], body[:name], body[:data], errors: e)
+          result = api.perform_bulk_member_action(
+            body[:ids],
+            body[:name],
+            body[:data],
+            errors: e,
+            before_actions: true
+          )
         else
-          result = api.perform_collection_action(body[:name], body[:data], errors: e)
+          result = api.perform_collection_action(
+            body[:name],
+            body[:data],
+            errors: e,
+            before_actions: true
+          )
         end
         body[:_id] ? { _id: body[:_id], data: result, _errors: e } : { data: result, _errors: e }
       rescue Exception => e
