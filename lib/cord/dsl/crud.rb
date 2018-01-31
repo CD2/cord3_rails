@@ -26,6 +26,7 @@ module Cord
               if resource.save
                 render(id: resource.id)
                 instance_exec resource, &crud_callbacks['after_save']
+                next if halted?
                 instance_exec resource, &crud_callbacks['after_create']
               else
                 error(resource.errors.as_json)
@@ -37,6 +38,8 @@ module Cord
         def self.define_update
           action :update do |resource|
             resource.assign_attributes(resource_params)
+            instance_exec resource, &crud_callbacks['before_modify']
+            next if halted?
             instance_exec resource, &crud_callbacks['before_update']
             next if halted?
             instance_exec resource, &crud_callbacks['before_save']
@@ -44,7 +47,10 @@ module Cord
             if resource.save
               render(id: resource.id)
               instance_exec resource, &crud_callbacks['after_save']
+              next if halted?
               instance_exec resource, &crud_callbacks['after_update']
+              next if halted?
+              instance_exec resource, &crud_callbacks['after_modify']
             else
               error resource.errors.as_json
             end
@@ -53,16 +59,20 @@ module Cord
 
         def self.define_destroy
           action :destroy do |resource|
+            instance_exec resource, &crud_callbacks['before_modify']
+            next if halted?
             instance_exec resource, &crud_callbacks['before_destroy']
             next if halted?
             resource.destroy
-            crud_callbacks['after_destroy'].call(resource)
+            instance_exec resource, &crud_callbacks['after_destroy']
+            next if halted?
+            instance_exec resource, &crud_callbacks['after_modify']
           end
         end
 
         CRUD_CALLBACKS = %i[
           before_create after_create before_update after_update before_destroy after_destroy
-          before_save after_save
+          before_save after_save before_modify after_modify
         ]
 
         CRUD_CALLBACKS.each do |callback|
