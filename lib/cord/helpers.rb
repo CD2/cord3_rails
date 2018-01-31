@@ -216,15 +216,6 @@ module Cord
           indent + x.inspect
         end
 
-        def apply_scope driver, name, scope
-          assert_driver(driver)
-          result = instance_exec(driver, &scope)
-          unless is_driver?(result)
-            raise ArgumentError, "scope '#{name}' did not return an ActiveRecord::Relation"
-          end
-          result
-        end
-
         def apply_sort(driver, sort)
           assert_driver(driver)
           col, dir = sort.downcase.split(' ')
@@ -247,6 +238,24 @@ module Cord
       end
 
       delegate *(methods - undelegated_methods), to: :class
+
+      def self.apply_scope driver, name, scope
+        assert_driver(driver)
+        result = instance_exec(driver, &scope)
+        unless is_driver?(result)
+          raise ArgumentError, "scope '#{name}' did not return an ActiveRecord::Relation"
+        end
+        result
+      end
+
+      def apply_scope driver, name, scope
+        assert_driver(driver)
+        result = instance_exec(driver, &scope)
+        unless is_driver?(result)
+          raise ArgumentError, "scope '#{name}' did not return an ActiveRecord::Relation"
+        end
+        result
+      end
 
       def self.load_api value
         api = value if is_api?(value)

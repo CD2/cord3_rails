@@ -74,7 +74,11 @@ module Cord
         end
       end
 
-      delegate :driver, to: :class
+      def driver
+        @driver ||= default_scopes.inject(model.all) do |driver, scope|
+          apply_scope(driver, *scope)
+        end
+      end
 
       def model
         self.class.model
