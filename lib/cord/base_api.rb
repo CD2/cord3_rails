@@ -24,13 +24,14 @@ module Cord
     self.crud_callbacks = CRUD_CALLBACKS.map { |x| [x, proc {}]}.to_h
 
     def render_ids scopes, search = nil, sort = nil
-      result = { _errors: {} }
+      result = {}
       records = driver
       records = apply_sort(records, sort) if sort.present?
       records = apply_search(records, search, searchable_columns) if search.present?
       scopes.each do |name|
         name = normalize(name)
         unless self.class.scopes[name]
+          result[:_errors] ||= {}
           result[:_errors][name] = "'#{name}' scope not defined for #{self.class.name}"
           next
         end
@@ -38,6 +39,7 @@ module Cord
           result[name] = apply_scope(records, name, self.class.scopes[name]).ids
         rescue Exception => e
           error_log e
+          result[:_errors] ||= {}
           result[:_errors][name] = e
         end
       end
@@ -78,7 +80,7 @@ module Cord
 
     def render_record record
       @record = record
-      @record_json = { _errors: [] }
+      @record_json = {}
       @calculated_attributes = {}
       @keywords.each do |keyword|
         case type_of_keyword(keyword)

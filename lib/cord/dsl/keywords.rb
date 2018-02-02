@@ -65,6 +65,7 @@ module Cord
           @calculated_attributes[name] = instance_exec(@record, &attributes[name])
         rescue Exception => e
           error_log e
+          @record_json[:_errors] ||= []
           @record_json[:_errors] << e
           nil
         end
@@ -82,6 +83,7 @@ module Cord
       end
 
       def keyword_missing name
+        @record_json[:_errors] ||= []
         @record_json[:_errors] << "'#{name}' does not match any keywords defined for #{self.class}"
       end
 

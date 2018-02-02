@@ -25,43 +25,60 @@ module Cord
         end
       end
 
-      def perform_bulk_member_action ids, name, data = {}, errors: nil, before_actions: false
+      def perform_bulk_member_action(
+        ids, name,
+        data: {}, errors: nil, before_actions: false, nested: true
+      )
         @actions_json = []
         records = driver.where(id: ids)
         records.each do |record|
           @actions_json << perform_member_action(
-            record, name, data, errors: errors, before_actions: before_actions
+            record, name, data: data, errors: errors, before_actions: before_actions, nested: nested
           )
         end
         @actions_json
       end
 
-      def perform_member_action record, name, data = {}, errors: nil, before_actions: false
+      def perform_member_action(
+        record, name,
+        data: nil, errors: nil, before_actions: false, nested: true
+      )
+        data ||= {}
+
         temp_record = @record
         @record = record
-        result = perform_action(name, data, errors: errors, before_actions: before_actions)
+        result = perform_action(
+          name, data: data, errors: errors, before_actions: before_actions, nested: nested
+        )
         @record = temp_record
         result
       end
 
-      def perform_collection_action name, data = {}, errors: nil, before_actions: false
+      def perform_collection_action(
+        name,
+        data: nil, errors: nil, before_actions: false, nested: true
+      )
+        data ||= {}
+
         temp_record = @record
         @record = nil
-        result = perform_action(name, data, errors: errors, before_actions: before_actions)
+        result = perform_action(
+          name, data: data, errors: errors, before_actions: before_actions, nested: nested
+        )
         @record = temp_record
         result
       end
 
       private
 
-      def perform_action(name, data = nil, errors: nil, before_actions: false)
+      def perform_action(name, data: nil, errors: nil, before_actions: false, nested: true)
         data ||= {}
         name = normalize(name)
 
         temp_response = @response
         temp_data = @data
 
-        unless (nested = !(@errors.nil? && @halted.nil?))
+        unless nested
           @errors = errors || []
           @halted = false
         end
@@ -83,7 +100,7 @@ module Cord
 
         result = @response
         @errors, @halted = nil unless nested
-        @response = temp_response
+        @response = temp_response unless halted?
         @data = temp_data
         result
       end
@@ -106,6 +123,7 @@ module Cord
       end
 
       def error data
+        @errors ||= []
         @errors << data
       end
 

@@ -16,7 +16,7 @@ class ArticlesApi < ApplicationApi
     action :nested_actions do
       error 'a top level error'
       results = []
-      results << perform_action(:echo, { 'some' => 'data' })
+      results << perform_action(:echo, data: { 'some' => 'data' })
       results << perform_action(:error)
       results << perform_action(:before)
       results << perform_action(:before, before_actions: true)

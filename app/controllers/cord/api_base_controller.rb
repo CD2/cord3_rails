@@ -68,21 +68,18 @@ module Cord
         e = []
         if body[:ids]
           result = api.perform_bulk_member_action(
-            body[:ids],
-            body[:name],
-            body[:data],
-            errors: e,
-            before_actions: true
+            body[:ids], body[:name],
+            data: body[:data], errors: e, before_actions: true, nested: false
           )
         else
           result = api.perform_collection_action(
             body[:name],
-            body[:data],
-            errors: e,
-            before_actions: true
+            data: body[:data], errors: e, before_actions: true, nested: false
           )
         end
-        body[:_id] ? { _id: body[:_id], data: result, _errors: e } : { data: result, _errors: e }
+        result = body[:_id] ? { _id: body[:_id], data: result } : { data: result }
+        result[:_errors] = e if e.any?
+        result
       rescue Exception => e
         error_log e
         body[:_id] ? { _id: body[:_id], data: {}, _errors: [e] } : { data: {}, _errors: [e] }
@@ -108,9 +105,11 @@ module Cord
     def formatted_response
       result = @cord_response.except(:_errors).map do |api, data|
         data[:table] = api.resource_name
-        data
+        data.reject { |_k, v| v.blank? }
       end
-      result << { table: :_errors, _errors: [@cord_response[:_errors]] }
+      if @cord_response[:_errors].any?
+        result << { table: :_errors, _errors: [@cord_response[:_errors]] }
+      end
       JSON.generate result
     end
 
