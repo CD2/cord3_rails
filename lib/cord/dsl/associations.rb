@@ -9,7 +9,7 @@ module Cord
             options = opts.to_options
             api_name = options.delete(:api)&.to_s || find_api_name(association_name)
             single = association_name.to_s.singularize
-            reflection = model.reflect_on_association(association_name)
+            reflection = model&.reflect_on_association(association_name)
 
             self.attribute "#{single}_ids", options do |record|
               record.send(association_name).ids
@@ -70,7 +70,7 @@ module Cord
           def has_one association_name, opts = {}
             options = opts.to_options
             api_name = options.delete(:api)&.to_s || find_api_name(association_name)
-            reflection = model.reflect_on_association(association_name)
+            reflection = model&.reflect_on_association(association_name)
 
             self.attribute "#{association_name}_id", options do |record|
               record.send(association_name)&.id
@@ -115,6 +115,7 @@ module Cord
           end
 
           def associations *names
+            assert_not_abstract
             opts = names.extract_options!
             names = Array.wrap(names[0]) if names.one?
             names.each do |name|

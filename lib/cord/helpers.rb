@@ -192,9 +192,9 @@ module Cord
                 else
                   "#{indent}#{indent_str}#{k.inspect} => "
                 end
-                str = key_str + flat_render[v]
+                str = key_str + flat_render[v] + ','
                 next str unless str.size > max_width
-                key_str + hash_nest_render[v, key_str.size]
+                key_str + hash_nest_render[v, key_str.size + 1] + ','
               end,
               "#{indent}}"
             ].join("\n")
@@ -238,6 +238,14 @@ module Cord
       end
 
       delegate *(methods - undelegated_methods), to: :class
+
+      def self.assert_not_abstract api = self
+        raise AbstractApiError, "#{api.name} is abstract" if api.abstract?
+      end
+
+      def assert_not_abstract api = self.class
+        raise AbstractApiError, "#{api.name} is abstract" if api.abstract?
+      end
 
       def self.apply_scope driver, name, scope
         assert_driver(driver)

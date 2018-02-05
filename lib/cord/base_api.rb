@@ -1,3 +1,4 @@
+require_relative 'errors'
 require_relative 'helpers'
 require_relative 'json_string'
 require_relative 'stores'
@@ -19,6 +20,8 @@ module Cord
     include Helpers
 
     attr_reader :controller
+
+    abstract!
 
     self.default_attributes = [:id]
     self.crud_callbacks = CRUD_CALLBACKS.map { |x| [x, proc {}]}.to_h
@@ -75,6 +78,7 @@ module Cord
     private
 
     def initialize controller = nil
+      assert_not_abstract
       @controller = controller
     end
 
