@@ -55,7 +55,7 @@ module Cord
 
           def default_scope name = nil, &block
             raise ArgumentError, 'must provide either a name or a block' unless name || block
-            default_scopes.add name, &block
+            default_scopes.add (name || block.object_id), &block
           end
 
           def scope name, &block
