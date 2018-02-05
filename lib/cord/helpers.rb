@@ -63,7 +63,22 @@ module Cord
         end
 
         def model_from_api api = self
-          api.name.chomp('Api').singularize.constantize
+          name = (api.is_a?(String) ? api : api.name).chomp('Api').singularize
+          begin
+            name.constantize
+          rescue NameError => e
+            case e.message
+            when /uninitialized constant #{name}/
+              next_name = name.split('::')[1..-1].join('::')
+              if next_name.present?
+                model_from_api(next_name)
+              else
+                raise e
+              end
+            else
+              raise e
+            end
+          end
         end
 
         def is_record? obj
