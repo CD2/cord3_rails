@@ -290,7 +290,7 @@ module Cord
         api = value if is_api?(value)
         api ||= find_api(value)
 
-        controller_instance = controller if is_api?(self)
+        controller_instance = controller if is_api?(self.class)
         controller_instance = self if is_a?(ApiBaseController)
 
         api.new(controller_instance)
