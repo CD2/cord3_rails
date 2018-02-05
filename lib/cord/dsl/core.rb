@@ -27,7 +27,9 @@ module Cord
 
           def model value = nil
             return nil if abstract?
-            value ||= (superclass.model || model_from_api) unless @model
+            unless value || (@model ||= superclass.model)
+              value = model_from_api
+            end
             if value
               raise ArgumentError, 'expected an ActiveRecord model' unless is_model?(value)
               @model = value
