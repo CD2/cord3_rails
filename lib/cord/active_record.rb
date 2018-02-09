@@ -11,7 +11,8 @@ module Cord
       define_method method_name do |val|
         if val.is_a?(Hash)
           val = val.symbolize_keys
-          if val.keys == %i[data name]
+          match_elements = -> (a, b) { a & b == a }
+          if match_elements[val.keys, %i[data name]]
             self.send("#{name}_url=", val[:data])
             self.send("#{name}_name=", val[:name])
             return
