@@ -9,7 +9,7 @@ module Cord
           eval <<-RUBY
             def self.#{name} *values
               unless @#{name}
-                @#{name} = (self == Cord::BaseApi ? {} : superclass.#{name}.deep_dup)
+                @#{name} = (self == ::Cord::BaseApi ? {} : superclass.#{name}.deep_dup)
 
                 def @#{name}.add *names, &block
                   names.flatten.each do |name|
@@ -51,7 +51,7 @@ module Cord
           eval <<-RUBY
             def self.#{name} *values
               unless @#{name}
-                @#{name} = (self == Cord::BaseApi ? [] : superclass.#{name}.deep_dup)
+                @#{name} = (self == ::Cord::BaseApi ? [] : superclass.#{name}.deep_dup)
 
                 def @#{name}.add *names
                   replace(self | names.flatten.map { |x| ::Cord::BaseApi.normalize(x) })

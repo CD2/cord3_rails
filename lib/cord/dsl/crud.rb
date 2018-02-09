@@ -5,7 +5,33 @@ module Cord
 
       included do
         hash_stores :crud_callbacks
-        array_stores :permitted_params
+        # array_stores :permitted_params
+
+        def self.permitted_params *values
+          unless @permitted_params
+            @permitted_params = self == ::Cord::BaseApi ? [] : superclass.permitted_params.deep_dup
+
+            def @permitted_params.add *names
+              replace(self | names.flatten)
+            end
+
+            def @permitted_params.remove *names
+              replace(self - names.flatten)
+            end
+          end
+
+          @permitted_params.add values
+
+          @permitted_params
+        end
+
+        def self.permitted_params= value
+          permitted_params.replace(value)
+        end
+
+        def permitted_params
+          self.class.permitted_params
+        end
 
         def self.crud_actions *actions
           actions = actions.flatten.map(&:to_sym)
