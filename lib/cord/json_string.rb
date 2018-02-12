@@ -1,5 +1,15 @@
 module Cord
   class JSONString
+    def self.generate obj
+      new(generate_string(obj))
+    end
+
+    def self.generate_string obj
+      return "{#{obj.map{ |k, v| "#{generate(k)}:#{generate(v)}" }.join(',')}}" if obj.is_a? Hash
+      return "[#{obj.map{ |k, v| generate(v) }.join(',')}]" if obj.is_a? Array
+      obj.to_json
+    end
+
     def initialize str = nil
       self.json = str.to_s
     end

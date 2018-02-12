@@ -110,7 +110,7 @@ module Cord
       if @cord_response[:_errors].any?
         result << { table: :_errors, _errors: [@cord_response[:_errors]] }
       end
-      result.to_json
+      JSONString.generate(result)
     end
 
     def add_queue_item api, body
