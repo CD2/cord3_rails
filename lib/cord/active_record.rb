@@ -2,6 +2,9 @@ require 'active_record'
 
 module Cord
   module ActiveRecord
+    def cord_file_accessors
+      @cord_file_accessors ||= []
+    end
 
     def cord_file_accessor name, *args, &block
       dragonfly_accessor name, *args, &block
@@ -20,6 +23,7 @@ module Cord
         end
         met.bind(self).call(val)
       end
+      cord_file_accessors << name
     end
 
   end

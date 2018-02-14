@@ -40,6 +40,7 @@ module Cord
                 end
                 attribute name, sql: sql
               end
+              attributes @model.cord_file_accessors
               scope :all
             end
             @model
