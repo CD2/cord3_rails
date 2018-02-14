@@ -111,7 +111,7 @@ module Cord
             SELECT
               array_to_json(array_agg(json))
             FROM
-              (#{driver.order(:id).to_sql}) AS json
+              (#{driver.to_sql}) AS json
           SQL
 
           JSONString.new(response.values.first.first || '[]')
@@ -127,7 +127,7 @@ module Cord
               array_to_json(array_agg(json)),
               array_agg(json.id)
             FROM
-              (#{driver.order(:id).to_sql}) AS json
+              (#{driver.to_sql}) AS json
           SQL
 
           json = JSONString.new(response.values.first.first || '[]')
@@ -229,26 +229,6 @@ module Cord
           end
 
           indent + x.inspect
-        end
-
-        def apply_sort(driver, sort)
-          assert_driver(driver)
-          col, dir = sort.downcase.split(' ')
-          unless dir.in?(%w[asc desc])
-            raise ArgumentError, "'#{dir}' is not a valid sort direction, expected 'asc' or 'desc'"
-          end
-          if col.in?(model.column_names)
-            driver.order(col => dir)
-          else
-            error "unknown sort #{col}"
-            driver
-          end
-        end
-
-        def apply_search(driver, search, columns = [])
-          assert_driver(driver)
-          condition = columns.map { |col| "#{col} ILIKE :term" }.join ' OR '
-          driver.where(condition, term: "%#{search}%")
         end
       end
 

@@ -29,8 +29,15 @@ module Cord
     def render_ids scopes, search = nil, sort = nil
       result = {}
       records = driver
-      records = apply_sort(records, sort) if sort.present?
-      records = apply_search(records, search, searchable_columns) if search.present?
+
+      if sort.present?
+        order_values = records.order_values
+        records = apply_sort(records.except(:order), sort)
+        records = records.order(order_values).order(:id)
+      end
+
+      records = apply_search(records, search) if search.present?
+
       scopes.each do |name|
         name = normalize(name)
         unless self.class.scopes[name]
@@ -160,6 +167,27 @@ module Cord
       render_aliases(self.class, aliases) if controller
 
       filter_ids
+    end
+
+    def apply_sort(driver, sort)
+      assert_driver(driver)
+      field, dir = sort.downcase.split(' ')
+      unless dir.in?(%w[asc desc])
+        raise ArgumentError, "'#{dir}' is not a valid sort direction, expected 'asc' or 'desc'"
+      end
+      if type_of_keyword(field) == :field
+        meta = meta_attributes[field]
+        driver.joins(meta[:joins]).order(%(#{meta[:sql]} #{dir.upcase}))
+      else
+        error "unknown sort #{field}"
+        driver
+      end
+    end
+
+    def apply_search(driver, search)
+      assert_driver(driver)
+      condition = searchable_columns.map { |col| "#{col} ILIKE :term" }.join ' OR '
+      driver.where(condition, term: "%#{search}%")
     end
 
     def method_missing *args, &block

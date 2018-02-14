@@ -1,4 +1,6 @@
 class ArticlesApi < ApplicationApi
+  default_scope { |d| d.order(id: :desc) }
+
   custom_alias(:home) { 1 }
   alias_columns.add :url
 
