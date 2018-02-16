@@ -32,9 +32,10 @@ module Cord
 
       if sort.present?
         order_values = records.order_values
-        records = apply_sort(records.except(:order), sort)
-        records = records.order(order_values).order(:id)
+        records = apply_sort(records.except(:order), sort, result: result)
+        records = records.order(order_values)
       end
+      records = records.order(:id)
 
       records = apply_search(records, search) if search.present?
 
@@ -169,7 +170,7 @@ module Cord
       filter_ids
     end
 
-    def apply_sort(driver, sort)
+    def apply_sort(driver, sort, result: nil)
       assert_driver(driver)
       field, dir = sort.downcase.split(' ')
       unless dir.in?(%w[asc desc])
@@ -179,7 +180,10 @@ module Cord
         meta = meta_attributes[field]
         driver.joins(meta[:joins]).order(%(#{meta[:sql]} #{dir.upcase}))
       else
-        error "unknown sort #{field}"
+        if result
+          result[:_errors] ||= {}
+          result[:_errors][:_sort] = "'#{field}' does not match any sortable attributes"
+        end
         driver
       end
     end
