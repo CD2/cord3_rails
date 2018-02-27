@@ -83,7 +83,13 @@ module Cord
           @halted = false
         end
 
-        @data = ActionController::Parameters.new(data)
+        if data.is_a? ActionController::Parameters
+          @data = data.dup
+          @data.send(:permitted=, false)
+        else
+          @data = ActionController::Parameters.new(data)
+        end
+        
         @response = {}
 
         if @record
