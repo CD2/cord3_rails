@@ -96,7 +96,9 @@ module Cord
 
             self.macro association_name do |*attributes|
               api = find_api(api_name)
-              load_records(api, [get_attribute("#{association_name}_id")], attributes) if controller
+              if controller && get_attribute("#{association_name}_id")
+                load_records(api, [get_attribute("#{association_name}_id")], attributes)
+              end
             end
 
             self.meta association_name, children: "#{association_name}_id", references: api_name
@@ -108,7 +110,9 @@ module Cord
 
             self.macro association_name do |*attributes|
               api = find_api(api_name)
-              load_records(api, [get_attribute("#{association_name}_id")], attributes) if controller
+              if controller && get_attribute("#{association_name}_id")
+                load_records(api, [get_attribute("#{association_name}_id")], attributes)
+              end
             end
 
             self.meta association_name, children: "#{association_name}_id", references: api_name

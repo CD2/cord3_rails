@@ -57,6 +57,7 @@ module Cord
         end
 
         def error_log e
+          e = StandardError.new(e) unless e.is_a?(Exception)
           raise e if Rails.env.development? && e.is_a?(SystemExit)
           case Cord.action_on_error
           when :log

@@ -42,8 +42,10 @@ module Cord
       scopes.each do |name|
         name = normalize(name)
         unless self.class.scopes[name]
+          e = "'#{name}' scope not defined for #{self.class.name}"
+          error_log e
           result[:_errors] ||= {}
-          result[:_errors][name] = "'#{name}' scope not defined for #{self.class.name}"
+          result[:_errors][name] = e
           next
         end
         begin
@@ -79,7 +81,10 @@ module Cord
       end
 
       @keywords, @options = nil
-      @records_json += ids.map { |id| { id: id, _errors: ['not found'] } } if ids.any?
+      if ids.any?
+        error_log RecordNotFound.new(ids)
+        @records_json += ids.map { |id| { id: id, _errors: ['not found'] } }
+      end
       @records_json
     end
 
@@ -170,20 +175,23 @@ module Cord
       filter_ids
     end
 
-    def apply_sort(driver, sort, result: nil)
+    def apply_sort(driver, sort, result: {})
       assert_driver(driver)
       field, dir = sort.downcase.split(' ')
       unless dir.in?(%w[asc desc])
-        raise ArgumentError, "'#{dir}' is not a valid sort direction, expected 'asc' or 'desc'"
+        e = "'#{dir}' is not a valid sort direction, expected 'asc' or 'desc'"
+        error_log e
+        result[:_errors] ||= {}
+        result[:_errors][:_sort] = e
       end
       if type_of_keyword(field) == :field && meta_attributes[field][:sortable]
         meta = meta_attributes[field]
         driver.joins(meta[:joins]).order(%(#{meta[:sql]} #{dir.upcase}))
       else
-        if result
-          result[:_errors] ||= {}
-          result[:_errors][:_sort] = "'#{field}' does not match any sortable attributes"
-        end
+        e = "'#{field}' does not match any sortable attributes"
+        error_log e
+        result[:_errors] ||= {}
+        result[:_errors][:_sort] = e
         driver
       end
     end
