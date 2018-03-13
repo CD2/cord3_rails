@@ -58,8 +58,13 @@ module Cord
 
         def error_log e
           raise e if Rails.env.development? && e.is_a?(SystemExit)
-          str = [nil, e.message, *e.backtrace, nil].join("\n")
-          respond_to?(:logger) ? logger.error(str) : puts(str)
+          case Cord.action_on_error
+          when :log
+            str = [nil, e.message, *e.backtrace, nil].join("\n")
+            respond_to?(:logger) ? logger.error(str) : puts(str)
+          when :raise
+            raise e
+          end
         end
 
         def model_from_api api = self

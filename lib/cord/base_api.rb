@@ -176,7 +176,7 @@ module Cord
       unless dir.in?(%w[asc desc])
         raise ArgumentError, "'#{dir}' is not a valid sort direction, expected 'asc' or 'desc'"
       end
-      if type_of_keyword(field) == :field
+      if type_of_keyword(field) == :field && meta_attributes[field][:sortable]
         meta = meta_attributes[field]
         driver.joins(meta[:joins]).order(%(#{meta[:sql]} #{dir.upcase}))
       else

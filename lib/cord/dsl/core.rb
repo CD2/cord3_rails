@@ -33,13 +33,21 @@ module Cord
             if value
               raise ArgumentError, 'expected an ActiveRecord model' unless is_model?(value)
               @model = value
-              @model.column_names.each do |name|
+
+              @model.columns.each do |col|
+                name = col.name
                 sql = %("#{@model.table_name}"."#{name}")
-                if (enum = @model.defined_enums[name])
+                sortable = true
+
+                if (enum = @model.defined_enums[name]) # it's an enum
                   sql = %('#{enum.invert.to_json}'::jsonb->#{sql}::text)
+                elsif col.type.in? %i[json jsonb] # it's a json field
+                  sortable = false
                 end
-                attribute name, sql: sql
+
+                attribute name, sql: sql, sortable: sortable
               end
+
               attributes @model.cord_file_accessors
               scope :all
             end

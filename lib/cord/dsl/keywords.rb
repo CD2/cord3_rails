@@ -20,11 +20,11 @@ module Cord
             meta name, options
           end
 
-          DEFAULT_META = { children: [], references: [], joins: nil, sql: nil }
+          DEFAULT_META = { children: [], references: [], joins: nil, sql: nil, sortable: true }
 
           def meta name, opts = {}
             options = opts.to_options
-            options.assert_valid_keys(:children, :joins, :parents, :references, :sql)
+            options.assert_valid_keys(:children, :joins, :parents, :references, :sql, :sortable)
             name = normalize(name)
             Array.wrap(options[:parents]).each { |parent| self.meta parent, children: name }
             meta = meta_attributes[name] ||= DEFAULT_META.deep_dup
@@ -32,6 +32,7 @@ module Cord
             meta[:references] += Array.wrap(options[:references]).map { |x| find_api_name(x) }
             meta[:joins] = options[:joins]
             meta[:sql] = options[:sql]
+            meta[:sortable] = options[:sortable] unless options[:sortable].nil?
             meta
           end
         end
@@ -84,8 +85,10 @@ module Cord
       end
 
       def keyword_missing name
+        e = "'#{name}' does not match any keywords defined for #{self.class}"
+        error_log e
         @record_json[:_errors] ||= []
-        @record_json[:_errors] << "'#{name}' does not match any keywords defined for #{self.class}"
+        @record_json[:_errors] << e
       end
 
       def type_of_keyword name
