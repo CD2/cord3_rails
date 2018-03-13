@@ -78,6 +78,7 @@ module Cord
           instance_exec(*args, &macros[name])
         rescue Exception => e
           error_log e
+          @record_json[:_errors] ||= []
           @record_json[:_errors] << e
         end
       end
