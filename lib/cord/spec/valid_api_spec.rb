@@ -4,7 +4,7 @@ module Cord
       ::RSpec.shared_examples 'a valid cord api' do
         next if described_class.abstract?
 
-        factory_name = described_class.model.table_name.singularize
+        factory_name = described_class.resource_name.singularize
         factory_failed = false
 
         ::ActiveRecord::Base.transaction do

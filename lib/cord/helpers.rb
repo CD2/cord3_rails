@@ -104,8 +104,16 @@ module Cord
           raise ArgumentError, "expected an ActiveRecord::Relation, instead got #{obj.class}"
         end
 
-        def normalize str
-          str.to_s.downcase
+        def normalize s
+          s.to_s.downcase
+        end
+
+        def normalize_hash h
+          h.map { |k, v| [normalize(k), v] }.to_h
+        end
+
+        def normalize_array a
+          a.map { |x| normalize x }
         end
 
         def driver_to_json driver

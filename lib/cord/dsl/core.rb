@@ -48,7 +48,13 @@ module Cord
                 attribute name, sql: sql, sortable: sortable
               end
 
-              attributes @model.cord_file_accessors
+              @model.cord_file_accessors.each do |name|
+                attribute name
+                @model.cord_image_sizes[name].each do |size, _signature|
+                  attribute("#{name}__#{size}") { |r| r.send(name)&.get_size(size) }
+                end
+              end
+
               scope :all
             end
             @model
@@ -56,9 +62,9 @@ module Cord
 
           def resource_name value = nil
             if value
-              @resource_name = value
+              @resource_name = normalize value
             else
-              @resource_name ||= model&.table_name
+              @resource_name ||= model && normalize(model.table_name)
             end
           end
 
