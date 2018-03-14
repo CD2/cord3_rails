@@ -6,7 +6,11 @@ module Cord
     module Base
       def cord_file_accessors
         return @cord_file_accessors if @cord_file_accessors
-        @cord_file_accessors = self == ::ActiveRecord::Base ? [] : superclass.cord_file_accessors
+        if self == ::ActiveRecord::Base
+          @cord_file_accessors = []
+        else
+          @cord_file_accessors = superclass.cord_file_accessors.deep_dup
+        end
       end
 
       def cord_image_sizes
@@ -14,7 +18,7 @@ module Cord
         if self == ::ActiveRecord::Base
           @cord_image_sizes = Hash.new { |h, k| h[k] = Cord.default_image_sizes.deep_dup }
         else
-          @cord_image_sizes = superclass.cord_image_sizes
+          @cord_image_sizes = superclass.cord_image_sizes.deep_dup
         end
         cord_file_accessors.each { |f| @cord_image_sizes[f] }
         @cord_image_sizes
