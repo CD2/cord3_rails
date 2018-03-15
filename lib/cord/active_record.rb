@@ -30,24 +30,37 @@ module Cord
         dragonfly_accessor name, *args, &block
 
         method_name = "#{name}="
-        met = self.instance_method(method_name)
+        met = instance_method(method_name)
         define_method method_name do |val|
           if val.is_a?(Hash)
             val = val.symbolize_keys
             match_elements = -> (a, b) { a & b == a }
             if match_elements[val.keys, %i[data name]]
-              self.send("#{name}_url=", val[:data])
-              self.send("#{name}_name=", val[:name])
+              send("#{name}_url=", val[:data])
+              send("#{name}_name=", val[:name])
               return
             end
           end
           met.bind(self).call(val)
         end
 
-        met = self.instance_method(name)
         define_method name do
-          sup = met.bind(self).call
-          sup && Cord::Attachment.new(name, self, sup)
+          send("#{name}_uid") && Cord::Attachment.new(name, self)
+        end
+
+        if column_names.include? "#{name}_cache"
+          define_method "reload_#{name}_cache" do
+            update!("#{name}_cache" => send(name)&.reload_cache || {})
+          end
+
+          before_save do
+            if send "#{name}_uid_changed?"
+              new_cache = send("#{name}_uid") ? send(name)&.reload_cache || {} : {}
+              send "#{name}_cache=", new_cache
+            end
+          end
+
+          before_destroy { send(name)&.destroy_cached_images }
         end
 
         cord_file_accessors << name

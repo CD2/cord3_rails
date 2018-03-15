@@ -244,6 +244,38 @@ module Cord
 
           indent + x.inspect
         end
+
+        def async_map arr, threads: arr.size, &block
+          arr = arr.to_a if arr.respond_to? :to_a
+          return arr if arr.empty?
+
+          # can't have more threads than items
+          t = threads > arr.size ? arr.size : threads
+
+          # assign each thread a workspace, eg. 10 items, 3 threads => [0, 4, 7, 10]
+          step = arr.size / t
+          r = arr.size % t
+          indices = Array.new(t + 1, 0)
+          t.times { |i| indices[i + 1] = i + 1 > r ? indices[i] + step : indices[i] + step + 1 }
+
+          # have each thread iterate through its workspace and store the result
+          threads = Array.new(t)
+          result = Array.new(arr.size)
+          t.times do |i|
+            threads[i] = Thread.new do
+              index = indices[i]
+              while index < indices[i + 1]
+                result[index] = block.call arr[index]
+                index += 1
+              end
+            end
+          end
+
+          # wait for the threads to finish
+          threads.each &:join
+
+          result
+        end
       end
 
       delegate *(methods - undelegated_methods), to: :class

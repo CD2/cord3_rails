@@ -51,7 +51,12 @@ module Cord
               @model.cord_file_accessors.each do |name|
                 attribute name
                 @model.cord_image_sizes[name].each do |size, _signature|
-                  attribute("#{name}__#{size}") { |r| r.send(name)&.get_size(size) }
+                  if @model.column_names.include?("#{name}_cache") && !Cord.generate_missing_images
+                    sql = %("#{@model.table_name}"."#{name}_cache"->'#{size}')
+                  else
+                    sql = nil
+                  end
+                  attribute("#{name}__#{size}", sql: sql) { |r| r.send(name)&.get_size(size) }
                 end
               end
 
