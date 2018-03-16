@@ -35,7 +35,6 @@ module Cord
         records = apply_sort(records.except(:order), sort, result: result)
         records = records.order(order_values)
       end
-      records = records.order(:id)
 
       records = apply_search(records, search) if search.present?
 
@@ -49,7 +48,7 @@ module Cord
           next
         end
         begin
-          result[name] = apply_scope(records, name, self.class.scopes[name]).ids
+          result[name] = apply_scope(records, name, self.class.scopes[name]).order(:id).ids
         rescue Exception => e
           error_log e
           result[:_errors] ||= {}
