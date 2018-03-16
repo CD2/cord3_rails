@@ -29,16 +29,16 @@ module Cord
 
         context 'ignoring default scopes' do
           before(:all) do
-            @default_scopes = described_class.default_scopes.dup
+            @disable_default_scopes = Cord.disable_default_scopes
+            Cord.disable_default_scopes = true
             @scopes = described_class.scopes.dup
-            described_class.default_scopes = {}
             described_class.scopes = {}
             described_class.scope :all
             described_class.scope(:none) { |driver| driver.where('FALSE') }
           end
 
           after(:all) do
-            described_class.default_scopes = @default_scopes
+            Cord.disable_default_scopes = @disable_default_scopes
             described_class.scopes = @scopes
           end
 

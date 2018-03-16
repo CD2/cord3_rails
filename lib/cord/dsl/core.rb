@@ -20,7 +20,9 @@ module Cord
 
           def driver
             assert_not_abstract
-            @driver ||= default_scopes.inject(model.all) do |driver, scope|
+            return @driver if @driver && (@disable_default_scopes == Cord.disable_default_scopes)
+            return @driver = model.all if (@disable_default_scopes = Cord.disable_default_scopes)
+            @driver = default_scopes.inject(model.all) do |driver, scope|
               apply_scope(driver, *scope)
             end
           end
@@ -109,7 +111,9 @@ module Cord
       end
 
       def driver
-        @driver ||= default_scopes.inject(model.all) do |driver, scope|
+        return @driver if @driver && (@disable_default_scopes == Cord.disable_default_scopes)
+        return @driver = model.all if (@disable_default_scopes = Cord.disable_default_scopes)
+        @driver = default_scopes.inject(model.all) do |driver, scope|
           apply_scope(driver, *scope)
         end
       end

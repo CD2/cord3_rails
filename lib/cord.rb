@@ -22,5 +22,9 @@ module Cord
     # When set to false, you should manually populate the caches with reload_#{field}_cache().
     mattr_accessor :generate_missing_images
     self.generate_missing_images = true
+
+    # Used for testing
+    mattr_accessor :disable_default_scopes
+    self.disable_default_scopes = false
   end
 end

@@ -29,7 +29,7 @@ module Cord
     end
 
     def url
-      add_host Dragonfly.app.remote_url_for(uid)
+      add_host remote_url_for(uid)
     end
 
     def file_name
@@ -53,6 +53,7 @@ module Cord
     end
 
     def destroy_cached_images
+      return unless cache
       Cord::BaseApi.async_map(cache.values) { |url| Dragonfly.app.destroy url_to_uid(url) }
     end
 
@@ -99,7 +100,7 @@ module Cord
       parts = file_name.to_s.split('.')
       parts.size > 1 ? parts[-2] += "_#{size}" : parts = ["#{file_name}_#{size}"]
       uid = Dragonfly.app.store file.thumb(sizes[size]), 'name' => parts.join('.')
-      add_host Dragonfly.app.remote_url_for(uid)
+      add_host remote_url_for(uid)
     end
 
     def add_host url
@@ -110,6 +111,17 @@ module Cord
     def url_to_uid url
       route = Dragonfly.app.datastore.instance_eval { root_path.gsub(server_root, '') }
       url.partition(route)[2].gsub /\A\//, ''
+    end
+
+    def remote_url_for uid
+      if @no_remote
+        begin
+          return Dragonfly.app.remote_url_for(uid)
+        rescue NotImplementedError
+          @no_remote = true
+        end
+      end
+      Dragonfly.app.fetch(uid).url
     end
   end
 end

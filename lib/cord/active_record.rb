@@ -56,7 +56,7 @@ module Cord
           before_save do
             if send "#{name}_uid_changed?"
               new_cache = send("#{name}_uid") ? send(name)&.reload_cache || {} : {}
-              send "#{name}_cache=", new_cache
+              self["#{name}_cache"] = new_cache
             end
           end
 

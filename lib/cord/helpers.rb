@@ -323,4 +323,12 @@ module Cord
       end
     end
   end
+
+  class HelperClass
+    include Helpers
+  end
+
+  def self.helpers
+    HelperClass
+  end
 end
