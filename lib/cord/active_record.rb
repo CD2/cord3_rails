@@ -48,7 +48,7 @@ module Cord
           send("#{name}_uid") && Cord::Attachment.new(name, self)
         end
 
-        if column_names.include? "#{name}_cache"
+        if table_exists? && column_names.include?("#{name}_cache")
           define_method "reload_#{name}_cache" do
             update!("#{name}_cache" => send(name)&.reload_cache || {})
           end

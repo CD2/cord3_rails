@@ -33,7 +33,12 @@ module Cord
     end
 
     def file_name
-      @file_name ||= model.column_names.include?("#{name}_name") ? record.send("#{name}_name") : ''
+      return @file_name if @file_name
+      if model.table_exists? && model.column_names.include?("#{name}_name")
+        @file_name = record.send("#{name}_name")
+      else
+        @file_name = ''
+      end
     end
 
     def file
