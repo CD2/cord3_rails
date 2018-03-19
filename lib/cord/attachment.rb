@@ -58,6 +58,7 @@ module Cord
     end
 
     def destroy_cached_images
+      return nil # James said to do this
       return unless cache
       Cord::BaseApi.async_map(cache.values) { |url| Dragonfly.app.destroy url_to_uid(url) }
     end
@@ -113,10 +114,10 @@ module Cord
       Dragonfly.app.server.url_host.chomp('/') + url
     end
 
-    def url_to_uid url
-      route = Dragonfly.app.datastore.instance_eval { root_path.gsub(server_root, '') }
-      url.partition(route)[2].gsub /\A\//, ''
-    end
+    #def url_to_uid url
+    #  route = Dragonfly.app.datastore.instance_eval { root_path.gsub(server_root, '') }
+    #  url.partition(route)[2].gsub /\A\//, ''
+    #end
 
     def remote_url_for uid
       if @no_remote
