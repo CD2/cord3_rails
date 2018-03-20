@@ -48,7 +48,8 @@ module Cord
           next
         end
         begin
-          result[name] = apply_scope(records, name, self.class.scopes[name]).order(:id).ids
+          query = apply_scope(records, name, self.class.scopes[name]).order(:id)
+          result[name] = pluck_to_json(query, :id)
         rescue Exception => e
           error_log e
           result[:_errors] ||= {}

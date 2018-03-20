@@ -116,6 +116,30 @@ module Cord
           a.map { |x| normalize x }
         end
 
+        def pluck_to_json driver, *fields
+          assert_driver(driver)
+
+          fields = fields.flatten
+          if fields.none?
+            raise ArgumentError, 'requires at least one field to pluck'
+          elsif fields.one?
+            fields = "json.#{normalize fields[0]}"
+          else
+            fields = %(json_build_array(#{fields.map { |f| "json.#{normalize f}" }.join(',')}))
+          end
+
+          return JSONString.new('[]') if driver.to_sql.blank?
+
+          response = ::ActiveRecord::Base.connection.execute <<-SQL.squish
+            SELECT
+              array_to_json(array_agg(#{fields}))
+            FROM
+              (#{driver.to_sql}) AS json
+          SQL
+
+          JSONString.new(response.values.first.first || '[]')
+        end
+
         def driver_to_json driver
           assert_driver(driver)
 
