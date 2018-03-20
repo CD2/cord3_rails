@@ -4,7 +4,7 @@ module Cord
     attr_accessor :record
 
     def initialize name, record
-      self.name = Cord::BaseApi.normalize name
+      self.name = Cord.helpers.normalize name
       self.record = record
     end
 
@@ -23,8 +23,8 @@ module Cord
     end
 
     def sizes
-      @sizes ||= Cord::BaseApi.normalize_hash(
-        Cord::BaseApi.normalize_hash(model.cord_image_sizes)[name]
+      @sizes ||= Cord.helpers.normalize_hash(
+        Cord.helpers.normalize_hash(model.cord_image_sizes)[name]
       )
     end
 
@@ -60,16 +60,16 @@ module Cord
     def destroy_cached_images
       return nil # James said to do this
       return unless cache
-      Cord::BaseApi.async_map(cache.values) { |url| Dragonfly.app.destroy url_to_uid(url) }
+      Cord.helpers.async_map(cache.values) { |url| Dragonfly.app.destroy url_to_uid(url) }
     end
 
     def reload_cache
       destroy_cached_images
-      Cord::BaseApi.async_map(sizes.keys) { |size| [size, store_new_size(size)] }.to_h
+      Cord.helpers.async_map(sizes.keys) { |size| [size, store_new_size(size)] }.to_h
     end
 
     def get_size name
-      name = Cord::BaseApi.normalize name
+      name = Cord.helpers.normalize name
 
       unless sizes[name]
         raise ArgumentError, "unknown size '#{name}', valid sizes are: #{sizes.keys}"
@@ -77,7 +77,8 @@ module Cord
 
       return file.thumb(sizes[name]).url unless cache
       return cache[name] if cache[name]
-      return nil unless Cord.generate_missing_images
+      return nil unless Cord.action_on_missing_image
+      return file.thumb(sizes[name]).url if Cord.action_on_missing_image == :generate
 
       # update the in-memory record
       result = cache[name] = store_new_size(name)
