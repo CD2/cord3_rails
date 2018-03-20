@@ -63,22 +63,24 @@ module Cord
 
         def self.define_update
           action :update do |resource|
-            resource.assign_attributes(resource_params)
-            instance_exec resource, &crud_callbacks['before_modify']
-            next if halted?
-            instance_exec resource, &crud_callbacks['before_update']
-            next if halted?
-            instance_exec resource, &crud_callbacks['before_save']
-            next if halted?
-            if resource.save
-              render(id: resource.id)
-              instance_exec resource, &crud_callbacks['after_save']
+            resource.with_lock do
+              resource.assign_attributes(resource_params)
+              instance_exec resource, &crud_callbacks['before_modify']
               next if halted?
-              instance_exec resource, &crud_callbacks['after_update']
+              instance_exec resource, &crud_callbacks['before_update']
               next if halted?
-              instance_exec resource, &crud_callbacks['after_modify']
-            else
-              error resource.errors.as_json
+              instance_exec resource, &crud_callbacks['before_save']
+              next if halted?
+              if resource.save
+                render(id: resource.id)
+                instance_exec resource, &crud_callbacks['after_save']
+                next if halted?
+                instance_exec resource, &crud_callbacks['after_update']
+                next if halted?
+                instance_exec resource, &crud_callbacks['after_modify']
+              else
+                error resource.errors.as_json
+              end
             end
           end
         end
