@@ -118,8 +118,8 @@ module Cord
         existing_item = [api, {}]
         @processing_queue << existing_item
       end
-      body.each do |k, v|
-        next unless k.in? %i[records ids actions]
+      %i[actions ids records].each do |k|
+        next unless v = body[k]
         existing_item[1][k] ||= []
         next existing_item[1][k] += v unless k == :records
         existing_item[1][k] = safely_combine_records(existing_item[1][k], v)
