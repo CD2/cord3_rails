@@ -47,14 +47,14 @@ module Cord
       begin
         api = load_api(api)
         blob = {}
+        blob[:actions] = (body[:actions] || []).map do |x|
+          cord_process_action(api, x)
+        end
         blob[:ids] = (body[:ids] || []).inject({}) do |result, x|
           result.merge process_ids(api, x)
         end
         blob[:records] = (body[:records] || []).inject([]) do |result, x|
           result + api.render_records(x[:ids], x[:attributes])
-        end
-        blob[:actions] = (body[:actions] || []).map do |x|
-          cord_process_action(api, x)
         end
         blob
       rescue Exception => e
@@ -118,8 +118,8 @@ module Cord
         existing_item = [api, {}]
         @processing_queue << existing_item
       end
-      %i[actions ids records].each do |k|
-        next unless v = body[k]
+      body.each do |k, v|
+        next unless k.in? %i[records ids actions]
         existing_item[1][k] ||= []
         next existing_item[1][k] += v unless k == :records
         existing_item[1][k] = safely_combine_records(existing_item[1][k], v)
