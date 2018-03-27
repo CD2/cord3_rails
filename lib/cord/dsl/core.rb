@@ -62,6 +62,11 @@ module Cord
                 end
               end
 
+              @model.reflect_on_all_associations.map do |reflection|
+                next unless reflection.macro.in? %i[has_many has_one belongs_to]
+                associations reflection.name, auto: true
+              end
+
               scope :all
             end
             @model
