@@ -20,11 +20,15 @@ module Cord
             meta name, options
           end
 
-          DEFAULT_META = { children: [], references: [], joins: nil, sql: nil, sortable: true }
+          DEFAULT_META = {
+            children: [], references: [], joins: nil, sql: nil, sortable: true, cached: nil
+          }
 
           def meta name, opts = {}
             options = opts.to_options
-            options.assert_valid_keys(:children, :joins, :parents, :references, :sql, :sortable)
+            options.assert_valid_keys(
+              :children, :joins, :parents, :references, :sql, :sortable, :cached
+            )
             name = normalize(name)
             Array.wrap(options[:parents]).each { |parent| self.meta parent, children: name }
             meta = meta_attributes[name] ||= DEFAULT_META.deep_dup
@@ -33,6 +37,11 @@ module Cord
             meta[:joins] = options[:joins]
             meta[:sql] = options[:sql]
             meta[:sortable] = options[:sortable] unless options[:sortable].nil?
+            if options[:cached].is_a?(ActiveSupport::Duration)
+              meta[:cached] = options[:cached]
+            else
+              meta[:cached] = options[:cached] ? Cord.default_cache_lifespan : nil
+            end
             meta
           end
         end
@@ -95,6 +104,7 @@ module Cord
         name = normalize(name)
         return :macro if macros.has_key?(name)
         if attributes.has_key?(name)
+          return :virtual if meta_attributes.dig(name, :joins)
           return :field if meta_attributes.dig(name, :sql)
           :attribute
         end

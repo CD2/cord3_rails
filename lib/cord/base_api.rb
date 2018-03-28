@@ -2,6 +2,7 @@ require_relative 'errors'
 require_relative 'helpers'
 require_relative 'json_string'
 require_relative 'stores'
+require_relative 'sql_string'
 
 Dir[Cord::Engine.root + './lib/cord/dsl/**/*.rb'].each { |file| require file }
 
@@ -64,26 +65,64 @@ module Cord
       ids = prepare_ids(ids)
       @keywords, @options = prepare_keywords(keywords)
       records = driver.where(id: ids.to_a)
+      valid_caches = []
+      invalid_caches = []
 
-      if @keywords.all? { |x| type_of_keyword(x) == :field }
+      if model_supports_caching?
+        cache_selects = @keywords.map do |k|
+          next if type_of_keyword(k) == :field
+          next unless cache_lifespan = meta_attributes.dig(k, :cached)
+          result = SQLString.new %(
+            EVERY((cord_cache -> :key ->> 'time')::timestamp > greatest(:time, updated_at)) AS #{k}
+          )
+          result.compact.assign(key: k, time: cache_lifespan.ago)
+        end
+
+        if cache_selects.any?
+          cache_check = model.where(id: records).select(cache_selects.compact.join(', '))
+          valid_caches, invalid_caches = cache_check.raw[0].partition { |_k, v| v }.map do |x|
+            x.map &:first
+          end
+        end
+      end
+
+      if @keywords.all? { |x| type_of_keyword(x).in?(%i[field virtual]) || x.in?(valid_caches) }
         # Use Postgres to generate the JSON
-        joins = @keywords.map { |keyword| meta_attributes[keyword][:joins] }.compact
-        selects = @keywords.map { |keyword| %(#{meta_attributes[keyword][:sql]} AS "#{keyword}") }
-        records = records.joins(joins).select(selects)
-        @records_json, ids = driver_to_json_with_missing_ids(records, ids.to_a)
+        joins = @keywords.map do |keyword|
+          meta_attributes[keyword][:joins] unless keyword.in?(valid_caches)
+        end
+
+        selects = @keywords.map do |keyword|
+          if keyword.in?(valid_caches)
+            %(cord_cache -> '#{keyword}' -> 'value' AS "#{keyword}")
+          else
+            %(#{meta_attributes[keyword][:sql]} AS "#{keyword}")
+          end
+        end
+
+        records = records.joins(joins.compact).select(selects)
+        @records_json, missing_ids = driver_to_json_with_missing_ids(records, ids.to_a)
+
+        update_record_caches(invalid_caches, @records_json) if invalid_caches.any?
       else
         # Use Ruby to generate the JSON
+        missing_ids = ids.dup
+
         records.each do |record|
           result = render_record(record)
           @records_json << result
-          ids.delete result['id'].to_s
+          missing_ids.delete result['id'].to_s
+        end
+
+        if invalid_caches.any?
+          update_record_caches(invalid_caches, @records_json) if invalid_caches.any?
         end
       end
 
       @keywords, @options = nil
-      if ids.any?
-        error_log RecordNotFound.new(ids)
-        @records_json += ids.map { |id| { id: id, _errors: ['not found'] } }
+      if missing_ids.any?
+        error_log RecordNotFound.new(missing_ids)
+        @records_json += missing_ids.map { |id| { id: id, _errors: ['not found'] } }
       end
       @records_json
     end
@@ -103,7 +142,7 @@ module Cord
         case type_of_keyword(keyword)
         when :macro
           perform_macro(keyword, *(@options[keyword] || []))
-        when :attribute, :field
+        when :attribute, :field, :virtual
           @record_json[keyword] = render_attribute(keyword)
         else
           keyword_missing(keyword)
@@ -184,7 +223,7 @@ module Cord
         result[:_errors] ||= {}
         result[:_errors][:_sort] = e
       end
-      if type_of_keyword(field) == :field && meta_attributes[field][:sortable]
+      if type_of_keyword(field).in?(%i[field virtual]) && meta_attributes[field][:sortable]
         meta = meta_attributes[field]
         driver.joins(meta[:joins]).order(%(#{meta[:sql]} #{dir.upcase}))
       else
@@ -200,6 +239,46 @@ module Cord
       assert_driver(driver)
       condition = searchable_columns.map { |col| "#{col} ILIKE :term" }.join ' OR '
       driver.where(condition, term: "%#{search}%")
+    end
+
+    def update_record_caches fields, records_json = []
+      api = self.class
+      return if api.cache_updating?
+
+      time = Time.current
+      records_json = records_json.to_a
+
+      new_cache_data = records_json.map do |record_json|
+        result = { id: record_json['id'], cord_cache: {} }
+        fields.each { |f| result[:cord_cache][f] = { value: record_json[f], time: time } }
+        result[:cord_cache] = result[:cord_cache].to_json
+        SQLString.new("(:id, :cord_cache::jsonb)").assign(result)
+      end
+
+      query = SQLString.new <<-SQL
+        UPDATE #{model.table_name}
+        SET cord_cache = #{model.table_name}.cord_cache || new_cache_data.cord_cache
+        FROM (VALUES #{new_cache_data.join(',')}) AS new_cache_data(id, cord_cache)
+        WHERE #{model.table_name}.id = new_cache_data.id
+      SQL
+
+      api.cache_updating!
+      query.compact.run_async always: -> { api.cache_updated! }
+    end
+
+    def self.cache_updating?
+      @cache_updating_lock ||= Mutex.new
+      @cache_updating_lock.synchronize { !!@cache_updating }
+    end
+
+    def self.cache_updating!
+      @cache_updating_lock ||= Mutex.new
+      @cache_updating_lock.synchronize { @cache_updating = true }
+    end
+
+    def self.cache_updated!
+      @cache_updating_lock ||= Mutex.new
+      @cache_updating_lock.synchronize { @cache_updating = false }
     end
 
     def method_missing *args, &block

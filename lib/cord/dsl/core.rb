@@ -33,7 +33,7 @@ module Cord
               value = model_from_api
             end
             if value
-              raise ArgumentError, 'expected an ActiveRecord model' unless is_model?(value)
+              assert_model(value)
               @model = value
 
               @model.columns.each do |col|

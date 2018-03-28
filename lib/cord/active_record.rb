@@ -68,6 +68,12 @@ module Cord
     end
 
     module Migration
+      def cord_cache table
+        add_column table, :cord_cache, :jsonb, default: {}, null: false
+        json_type_constraint table, :cord_cache, :object
+        add_index table, :cord_cache, using: :gin
+      end
+
       def json_type_constraint table, column, type
         reversible do |dir|
           dir.up do

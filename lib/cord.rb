@@ -39,4 +39,7 @@ module Cord
 
   # Ignores all default api scopes, useful for testing/debugging
   config_setting :disable_default_scopes, default: false
+
+  # How long to hold record caches before regenerating them, unless specified otherwise
+  config_setting :default_cache_lifespan, default: 5.minutes
 end

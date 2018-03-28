@@ -58,7 +58,7 @@ module Cord
 
         def error_log e
           e = StandardError.new(e) unless e.is_a?(Exception)
-          raise e if Rails.env.development? && e.is_a?(SystemExit)
+          raise e if Rails.env.development? && (e.is_a?(SystemExit) || e.is_a?(Interrupt))
           case Cord.action_on_error
           when :log
             str = [nil, e.message, *e.backtrace, nil].join("\n")
@@ -102,6 +102,11 @@ module Cord
         def assert_driver obj
           return if is_driver?(obj)
           raise ArgumentError, "expected an ActiveRecord::Relation, instead got #{obj.class}"
+        end
+
+        def assert_model obj
+          return if is_model?(obj)
+          raise ArgumentError, "expected an ActiveRecord model, instead got #{obj.class}"
         end
 
         def normalize s
@@ -299,6 +304,39 @@ module Cord
           threads.each &:join
 
           result
+        end
+
+        def symbolize arg
+          return arg if arg.is_a? Symbol
+          return arg.to_sym if arg.respond_to? :to_sym
+          arg.to_s.to_sym
+        end
+
+        def sanitize_sql(*args)
+          ::ActiveRecord::Base.send(:sanitize_sql, args)
+        end
+
+        def escape_sql(literal)
+          sanitize_sql '?', literal
+        end
+
+        def infer_model model = nil
+          model ||= self if is_model?(self)
+          model ||= self.class if is_record?(self)
+          model ||= self.model if is_api?(self)
+          raise ArgumentError, 'model was not specified and could not be inferred' unless model
+          assert_model(model)
+          model
+        end
+
+        def load_sql name, model = nil
+          model = infer_model(model)
+          SQLString.new(File.read "./app/queries/#{model.name.underscore}/#{normalize name}.sql")
+        end
+
+        def model_supports_caching? model = nil
+          model = infer_model(model)
+          model.table_exists? && 'cord_cache'.in?(model.column_names)
         end
       end
 
