@@ -34,14 +34,17 @@ module Cord
             end
 
             if reflection&.macro == :has_many
-              query = model.left_joins(association_name).group(:id).select <<-SQL.squish
+              query = model.left_joins(association_name).group(:id).where(<<-SQL.squish)
+                "#{model.table_name}"."id" = "driver"."id"
+              SQL
+              .select(<<-SQL.squish)
                 "#{model.table_name}"."id",
                 array_remove(array_agg("#{reflection.table_name}"."id"), NULL) AS "#{single}_ids"
               SQL
 
               joins = <<-SQL.squish
-                LEFT JOIN (#{query.to_sql}) AS "#{single}_ids_query"
-                ON "#{single}_ids_query"."id" = "#{model.table_name}"."id"
+                LEFT JOIN LATERAL (#{query.to_sql}) AS "#{single}_ids_query"
+                USING (id)
               SQL
 
               self.meta(
@@ -60,14 +63,17 @@ module Cord
             end
 
             if reflection&.macro == :has_many
-              query = model.left_joins(association_name).group(:id).select <<-SQL.squish
+              query = model.left_joins(association_name).group(:id).where(<<-SQL.squish)
+                "#{model.table_name}"."id" = "driver"."id"
+              SQL
+              .select <<-SQL.squish
                 "#{model.table_name}"."id",
                 COUNT("#{reflection.table_name}"."id") AS "#{single}_count"
               SQL
 
               joins = <<-SQL.squish
-                LEFT JOIN (#{query.to_sql}) AS "#{single}_count_query"
-                ON "#{single}_count_query"."id" = "#{model.table_name}"."id"
+                LEFT JOIN LATERAL (#{query.to_sql}) AS "#{single}_count_query"
+                USING (id)
               SQL
 
               self.meta(
@@ -103,14 +109,17 @@ module Cord
             end
 
             if reflection&.macro == :has_one
-              query = model.left_joins(association_name).group(:id).select <<-SQL.squish
+              query = model.left_joins(association_name).group(:id).where(<<-SQL.squish)
+                "#{model.table_name}"."id" = "driver"."id"
+              SQL
+              .select <<-SQL.squish
                 "#{model.table_name}"."id",
                 (array_agg("#{reflection.table_name}"."id"))[1] AS "#{association_name}_id"
               SQL
 
               joins = <<-SQL.squish
-                LEFT JOIN (#{query.to_sql}) AS "#{association_name}_id_query"
-                ON "#{association_name}_id_query"."id" = "#{model.table_name}"."id"
+                LEFT JOIN LATERAL (#{query.to_sql}) AS "#{association_name}_id_query"
+                USING (id)
               SQL
 
               self.meta(

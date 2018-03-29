@@ -114,13 +114,29 @@ module Cord
 
     def assign vars = {}
       result = dup
-      result.instance_variable_set(:@variables, nil)
+      result.instance_variable_set(:@variables, variables.dup)
       vars.each { |k, v| result[k] = v }
       result
+    end
+
+    def safe_assign! vars = {}
+      vars.each do |k, v|
+        k = symbolize(k)
+        variables[k] = v if has_variable?(k)
+      end
+      self
+    end
+
+    def safe_assign vars = {}
+      result = dup
+      result.instance_variable_set(:@variables, variables.dup)
+      result.safe_assign!(vars)
     end
 
     def symbolize k
       Cord.helpers.symbolize(k)
     end
+
+    delegate :blank?, :present?, to: :sql
   end
 end

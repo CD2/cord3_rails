@@ -109,6 +109,14 @@ module Cord
           raise ArgumentError, "expected an ActiveRecord model, instead got #{obj.class}"
         end
 
+        def require_sql obj
+          return obj if obj.is_a? SQLString
+          return SQLString.new(obj.to_sql) if obj.respond_to? :to_sql
+          return SQLString.new(obj) if obj.is_a? String
+          return SQLString.new(obj.all.to_sql) if is_model?(obj)
+          raise ArgumentError, "expected a query-like object, instead got #{obj.class}"
+        end
+
         def normalize s
           s.to_s.downcase
         end
@@ -122,7 +130,7 @@ module Cord
         end
 
         def pluck_to_json driver, *fields
-          assert_driver(driver)
+          sql = require_sql(driver)
 
           fields = fields.flatten
           if fields.none?
@@ -133,44 +141,44 @@ module Cord
             fields = %(json_build_array(#{fields.map { |f| "json.#{normalize f}" }.join(',')}))
           end
 
-          return JSONString.new('[]') if driver.to_sql.blank?
+          return JSONString.new('[]') if sql.blank?
 
           response = ::ActiveRecord::Base.connection.execute <<-SQL.squish
             SELECT
               array_to_json(array_agg(#{fields}))
             FROM
-              (#{driver.to_sql}) AS json
+              (#{sql}) AS json
           SQL
 
           JSONString.new(response.values.first.first || '[]')
         end
 
         def driver_to_json driver
-          assert_driver(driver)
+          sql = require_sql(driver)
 
-          return JSONString.new('[]') if driver.to_sql.blank?
+          return JSONString.new('[]') if sql.blank?
 
           response = ::ActiveRecord::Base.connection.execute <<-SQL.squish
             SELECT
               array_to_json(array_agg(json))
             FROM
-              (#{driver.to_sql}) AS json
+              (#{sql}) AS json
           SQL
 
           JSONString.new(response.values.first.first || '[]')
         end
 
         def driver_to_json_with_missing_ids driver, ids
-          assert_driver(driver)
+          sql = require_sql(driver)
 
-          return [JSONString.new('[]'), ids] if driver.to_sql.blank?
+          return [JSONString.new('[]'), ids] if sql.blank?
 
           response = ::ActiveRecord::Base.connection.execute <<-SQL.squish
             SELECT
               array_to_json(array_agg(json)),
               array_agg(json.id)
             FROM
-              (#{driver.to_sql}) AS json
+              (#{sql}) AS json
           SQL
 
           json = JSONString.new(response.values.first.first || '[]')
@@ -318,6 +326,18 @@ module Cord
 
         def escape_sql(literal)
           sanitize_sql '?', literal
+        end
+
+        def hash_to_sql_cases hash, var
+          "CASE #{var} " + hash.map { |k, v| sanitize_sql('WHEN ? THEN ? ', k, v) }.join + 'END'
+        end
+
+        def alias_driver driver, as: :driver
+          assert_driver(driver)
+          unless driver.from_clause.empty?
+            raise ArgumentError, 'driver already has a custom FROM clause'
+          end
+          driver.from %((#{driver.table_name} JOIN #{driver.table_name} AS "#{as}" USING (id)))
         end
 
         def infer_model model = nil

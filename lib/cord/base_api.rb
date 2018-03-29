@@ -29,7 +29,7 @@ module Cord
 
     def render_ids scopes, search = nil, sort = nil
       result = {}
-      records = driver
+      records = alias_driver(driver)
 
       if sort.present?
         order_values = records.order_values
@@ -88,19 +88,25 @@ module Cord
 
       if @keywords.all? { |x| type_of_keyword(x).in?(%i[field virtual]) || x.in?(valid_caches) }
         # Use Postgres to generate the JSON
-        joins = @keywords.map do |keyword|
-          meta_attributes[keyword][:joins] unless keyword.in?(valid_caches)
-        end
 
-        selects = @keywords.map do |keyword|
+        selects = []
+        joins = []
+
+        @keywords.each do |keyword|
           if keyword.in?(valid_caches)
-            %(cord_cache -> '#{keyword}' -> 'value' AS "#{keyword}")
-          else
-            %(#{meta_attributes[keyword][:sql]} AS "#{keyword}")
+            selects << %(
+              "#{model.table_name}"."cord_cache" -> '#{keyword}' -> 'value' AS "#{keyword}"
+            ).squish
+            next
           end
+
+          if meta_attributes[keyword][:joins]
+            joins << meta_attributes[keyword][:joins]
+          end
+          selects << %(#{meta_attributes[keyword][:sql]} AS "#{keyword}")
         end
 
-        records = records.joins(joins.compact).select(selects)
+        records = alias_driver(records).joins(joins).select(selects)
         @records_json, missing_ids = driver_to_json_with_missing_ids(records, ids.to_a)
 
         update_record_caches(invalid_caches, @records_json) if invalid_caches.any?
@@ -237,8 +243,11 @@ module Cord
 
     def apply_search(driver, search)
       assert_driver(driver)
-      condition = searchable_columns.map { |col| "#{col} ILIKE :term" }.join ' OR '
-      driver.where(condition, term: "%#{search}%")
+      conditions = searchable_columns.map do |col|
+        col = meta_attributes.dig(normalize(col), :sql) || col
+        "#{col} ILIKE :term"
+      end
+      driver.where(conditions.join(' OR '), term: "%#{search}%")
     end
 
     def update_record_caches fields, records_json = []

@@ -42,7 +42,7 @@ module Cord
                 sortable = true
 
                 if (enum = @model.defined_enums[name]) # it's an enum
-                  sql = %('#{enum.invert.to_json}'::jsonb->#{sql}::text)
+                  sql = hash_to_sql_cases(enum.invert, sql)
                 elsif col.type.in? %i[json jsonb] # it's a json field
                   sortable = false
                 end
