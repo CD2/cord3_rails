@@ -1,6 +1,7 @@
 require_relative 'errors'
 require_relative 'helpers'
 require_relative 'json_string'
+require_relative 'promise'
 require_relative 'stores'
 require_relative 'sql_string'
 
@@ -272,7 +273,7 @@ module Cord
       SQL
 
       api.cache_updating!
-      query.compact.run_async always: -> { api.cache_updated! }
+      query.compact.run_async.finally { api.cache_updated! }
     end
 
     def self.cache_updating?

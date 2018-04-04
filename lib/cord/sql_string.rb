@@ -21,19 +21,9 @@ module Cord
       ::ActiveRecord::Base.connection.execute(sql_with_variables)
     end
 
-    def run_async after: nil, catch: nil, always: nil
+    def run_async
       ::ActiveRecord::Base.connection.send(:log, sql_with_variables, 'Async SQL') {}
-      Thread.new do
-        begin
-          response = nil
-          ::ActiveRecord::Base.logger.silence { response = run }
-          after&.call(response)
-        rescue => e
-          catch&.call(e)
-        ensure
-          always&.call
-        end
-      end
+      Promise.new { ::ActiveRecord::Base.logger.silence { response = run } }
     end
 
     attr_reader :sql
