@@ -2,73 +2,50 @@ module Cord
   class Promise
     def initialize
       raise ArgumentError, 'no block given' unless block_given?
-      @callbacks = {
-        then: -> {},
-        catch: -> (e) {},
-        finally: -> {}
-      }
-      @resolved = false
-      @lock = Mutex.new
-
-      Thread.new {
-        begin
-          result = yield
-          resolve!
-          safe_call(@callbacks[:then], result)
-        rescue => e
-          resolve!
-          safe_call(@callbacks[:catch], e)
-        ensure
-          @callbacks[:finally].call
-        end
-      }
+      @thread = Thread.new { @result = yield }
     end
 
     def then &block
       raise ArgumentError, 'no block given' unless block_given?
-      @lock.synchronize do
-        error_if_resolved
-        @callbacks[:then] = block
-      end
-      self
+      self.class.new { safe_call(block, unsafe_await) }
     end
 
     def catch &block
       raise ArgumentError, 'no block given' unless block_given?
-      @lock.synchronize do
-        error_if_resolved
-        @callbacks[:catch] = block
+      self.class.new do
+        begin
+          unsafe_await
+        rescue => e
+          safe_call(block, e)
+        end
       end
-      self
     end
 
     def finally &block
       raise ArgumentError, 'no block given' unless block_given?
-      @lock.synchronize do
-        error_if_resolved
-        @callbacks[:finally] = block
+      self.class.new do
+        begin
+          unsafe_await
+        rescue
+        ensure
+          block.call
+        end
       end
-      self
     end
 
-    def resolved?
-      @lock.synchronize { @resolved }
-    end
-
-    def resolve!
-      @lock.synchronize { @resolved = true }
+    def await
+      unsafe_await rescue nil
     end
 
     private
 
-    def error_if_resolved
-      raise ResolvedError, 'cannot modify resolved promise' if @resolved
+    def unsafe_await
+      @thread.join
+      @result
     end
 
     def safe_call block, arg
       block.arity == 0 ? block.call : block.call(arg)
     end
-
-    ResolvedError = Class.new(StandardError)
   end
 end

@@ -86,7 +86,10 @@ module Cord
             if value
               @resource_name = normalize value
             else
-              @resource_name ||= model && normalize(model.table_name)
+              return @resource_name if @resource_name
+              return @resource_name = nil if abstract?
+              return @resource_name = name.chomp('Api').underscore if static?
+              @resource_name = model && normalize(model.table_name)
             end
           end
 

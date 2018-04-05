@@ -133,9 +133,10 @@ module Cord
         @response.merge! data
       end
 
-      def error data
+      def error e
+        error_log e
         @errors ||= []
-        @errors << data
+        @errors << e
       end
 
       def halt! message = nil
