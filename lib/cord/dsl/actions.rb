@@ -43,6 +43,9 @@ module Cord
         record, name,
         data: nil, errors: nil, before_actions: false, nested: true
       )
+        assert_not_abstract
+        assert_not_static
+
         data ||= {}
 
         temp_record = @record
@@ -58,6 +61,8 @@ module Cord
         name,
         data: nil, errors: nil, before_actions: false, nested: true
       )
+        assert_not_abstract
+
         data ||= {}
 
         temp_record = @record
@@ -89,7 +94,7 @@ module Cord
         else
           @data = ActionController::Parameters.new(data)
         end
-        
+
         @response = {}
 
         if @record

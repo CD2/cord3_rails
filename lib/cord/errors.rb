@@ -2,6 +2,7 @@ module Cord
   StandardError = Class.new(::StandardError)
 
   AbstractApiError = Class.new(StandardError)
+  StaticApiError = Class.new(StandardError)
 
   class RecordNotFound < StandardError
     def initialize *ids

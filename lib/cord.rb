@@ -1,21 +1,31 @@
 require 'cord/engine'
+require 'cord/active_record'
 require 'cord/base_api'
 
 Dir["#{Cord::Engine.root}/lib/cord/spec/**/*.rb"].each { |f| require f }
 
 
 module Cord
-  def self.config_setting name, default: nil, choices: nil
+  def self.config_setting name, default: nil, choices: nil, type: nil
     mattr_reader name
     if choices
       define_singleton_method "#{name}=" do |obj|
         raise ArgumentError, "#{name} must be one of #{choices}" unless obj.in? choices
         class_variable_set("@@#{name}", obj)
       end
+    elsif type
+      define_singleton_method "#{name}=" do |obj|
+        raise ArgumentError, "#{name} must be a #{type}" unless obj.is_a? type
+        class_variable_set("@@#{name}", obj)
+      end
     else
       mattr_writer name
     end
     send("#{name}=", default)
+  end
+
+  def self.configure
+    yield self
   end
 
   # Determines the behviour when an error is encountered while rendering a response

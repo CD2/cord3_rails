@@ -5,10 +5,11 @@ module Cord
 
       included do
         hash_stores %i[attributes macros meta_attributes]
-        array_stores :default_attributes
+        array_stores %i[default_attributes blacklisted_attributes]
 
         class << self
           def attribute name, options = {}, &block
+            return if blacklisted_attributes.include? normalize(name)
             attributes.add name, &block
             meta name, options
           end
@@ -43,6 +44,11 @@ module Cord
               meta[:cached] = options[:cached] ? Cord.default_cache_lifespan : nil
             end
             meta
+          end
+
+          def blacklist_attributes *names
+            attributes.remove names
+            blacklisted_attributes.add names
           end
         end
       end

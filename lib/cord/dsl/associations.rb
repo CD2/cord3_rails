@@ -169,6 +169,7 @@ module Cord
 
           def associations *names
             assert_not_abstract
+            assert_not_static
             opts = names.extract_options!
             names = Array.wrap(names[0]) if names.one?
             names.each do |name|

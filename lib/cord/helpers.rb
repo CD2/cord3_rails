@@ -370,6 +370,14 @@ module Cord
         raise AbstractApiError, "#{api.name} is abstract" if api.abstract?
       end
 
+      def self.assert_not_static api = self
+        raise StaticApiError, "#{api.name} is static" if api.static?
+      end
+
+      def assert_not_static api = self.class
+        raise StaticApiError, "#{api.name} is static" if api.static?
+      end
+
       def self.apply_scope driver, name, scope
         assert_driver(driver)
         result = instance_exec(driver, &scope)

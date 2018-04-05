@@ -2,7 +2,7 @@ module Cord
   module Spec
     def self.create_valid_api_spec
       ::RSpec.shared_examples 'a valid cord api' do
-        next if described_class.abstract?
+        next if described_class.abstract? || described_class.static?
 
         factory_name = described_class.resource_name.singularize
         factory_failed = false

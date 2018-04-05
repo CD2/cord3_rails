@@ -1,5 +1,5 @@
 module Cord
-  class ApiBaseController < ::ApplicationController
+  class ApiBaseController < ActionController::API
     include Helpers
 
     def respond

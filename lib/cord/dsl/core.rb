@@ -18,8 +18,18 @@ module Cord
             !!@abstract
           end
 
+          def static!
+            @static = true
+            self.context = :collection
+          end
+
+          def static?
+            !!@static
+          end
+
           def driver
             assert_not_abstract
+            assert_not_static
             return @driver if @driver && (@disable_default_scopes == Cord.disable_default_scopes)
             return @driver = model.all if (@disable_default_scopes = Cord.disable_default_scopes)
             @driver = default_scopes.inject(model.all) do |driver, scope|
@@ -28,7 +38,7 @@ module Cord
           end
 
           def model value = nil
-            return nil if abstract?
+            return nil if abstract? || static?
             unless value || (@model ||= superclass.model)
               value = model_from_api
             end
@@ -89,7 +99,9 @@ module Cord
             scopes.add name, &block
           end
 
-          attr_writer :context
+          def context= value
+            @context = ActiveSupport::StringInquirer.new(value.to_s)
+          end
 
           def context
             @context ||= ActiveSupport::StringInquirer.new('member')
@@ -97,14 +109,14 @@ module Cord
 
           def collection
             temp_context = @context
-            @context = ActiveSupport::StringInquirer.new('collection')
+            self.context = :collection
             yield
             @context = temp_context
           end
 
           def member
             temp_context = @context
-            @context = ActiveSupport::StringInquirer.new('member')
+            self.context = :member
             yield
             @context = temp_context
           end
@@ -116,6 +128,8 @@ module Cord
       end
 
       def driver
+        assert_not_abstract
+        assert_not_static
         return @driver if @driver && (@disable_default_scopes == Cord.disable_default_scopes)
         return @driver = model.all if (@disable_default_scopes = Cord.disable_default_scopes)
         @driver = default_scopes.inject(model.all) do |driver, scope|

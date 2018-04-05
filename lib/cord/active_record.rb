@@ -74,6 +74,17 @@ module Cord
         add_index table, :cord_cache, using: :gin
       end
 
+      def cord_file table, name = :file
+        add_column table, "#{name}_uid", :string
+        add_column table, "#{name}_name", :string
+      end
+
+      def cord_image table, name = :image
+        cord_file table, name
+        add_column table, "#{name}_cache", :jsonb, default: {}, null: false
+        json_type_constraint table, "#{name}_cache", :object
+      end
+
       def json_type_constraint table, column, type
         reversible do |dir|
           dir.up do
@@ -94,8 +105,35 @@ module Cord
         end
       end
     end
+
+    module ConnectionAdapters
+      module TableDefinition
+        def cord_cache
+          jsonb :cord_cache, default: {}, null: false
+          json_type_constraint :cord_cache, :object
+          index :cord_cache, using: :gin
+        end
+
+        def cord_file name = :file
+          string "#{name}_uid"
+          string "#{name}_name"
+        end
+
+        def cord_image name = :image
+          cord_file name
+          jsonb "#{name}_cache", default: {}, null: false
+          json_type_constraint "#{name}_cache", :object
+        end
+
+        def json_type_constraint name, type
+          # TODO
+          # Store the pair in a list somewhere then run through them after create
+        end
+      end
+    end
   end
 end
 
 ::ActiveRecord::Base.extend Cord::ActiveRecord::Base
 ::ActiveRecord::Migration.include Cord::ActiveRecord::Migration
+::ActiveRecord::ConnectionAdapters::TableDefinition.include Cord::ActiveRecord::ConnectionAdapters::TableDefinition
