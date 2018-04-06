@@ -1,6 +1,7 @@
 require_relative 'errors'
 require_relative 'helpers'
 require_relative 'json_string'
+require_relative 'parameters'
 require_relative 'promise'
 require_relative 'stores'
 require_relative 'sql_string'

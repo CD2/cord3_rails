@@ -57,6 +57,7 @@ module Cord
         end
 
         def error_log e
+          return warning_log(e) if e.is_a? Warning
           e = StandardError.new(e) unless e.is_a?(Exception)
           raise e if Rails.env.development? && (e.is_a?(SystemExit) || e.is_a?(Interrupt))
           case Cord.action_on_error
@@ -66,6 +67,15 @@ module Cord
           when :raise
             raise e
           end
+          e
+        end
+
+        def warning_log e
+          e = Warning.new(e) unless e.is_a?(Warning)
+          return e unless Cord.log_warnings
+          str = [nil, e.message, *e.backtrace, nil].join("\n")
+          respond_to?(:logger) ? logger.warn(str) : puts(str)
+          e
         end
 
         def model_from_api api = self

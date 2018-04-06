@@ -35,6 +35,15 @@ module Cord
   # This includes those raised by calling error() in an action
   config_setting :action_on_error, default: :log, choices: [:log, :raise, nil]
 
+  # When false, warnings will be not be printed in the console or added to the _warnings response
+  config_setting :log_warnings, default: true
+
+  # Determines the behviour when a given unpermitted params in an action
+  #   :warn => create a warning (behaviour defined by :log_warnings)
+  #   :error => create an error (behaviour defined by :action_on_error)
+  #   nil => ignore unpermitted parameters
+  config_setting :action_on_unpermitted_parameters, default: :warn, choices: [:warn, :error, nil]
+
   # The different image versions to be cached for images
   # Eg. { thumbnail_stretch: '75x75', thumbnail_crop: '75x75#' }
   config_setting :default_image_sizes, default: {}

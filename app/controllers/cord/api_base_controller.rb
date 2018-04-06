@@ -78,7 +78,9 @@ module Cord
           )
         end
         result = body[:_id] ? { _id: body[:_id], data: result } : { data: result }
-        result[:_errors] = e if e.any?
+        warnings, errors = e.partition { |e| e.is_a? Warning }
+        result[:_errors] = errors if Cord.action_on_error && errors.any?
+        result[:_warnings] = warnings if  Cord.log_warnings && warnings.any?
         result
       rescue Exception => e
         error_log e

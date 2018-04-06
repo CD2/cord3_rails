@@ -88,11 +88,12 @@ module Cord
           @halted = false
         end
 
-        if data.is_a? ActionController::Parameters
-          @data = data.dup
+        if data.is_a? Parameters
+          @data = data.deep_dup
           @data.send(:permitted=, false)
         else
-          @data = ActionController::Parameters.new(data)
+          @data = Parameters.new(data)
+          @data.api = self
         end
 
         @response = {}
@@ -134,7 +135,13 @@ module Cord
       end
 
       def error e
-        error_log e
+        e = error_log e
+        @errors ||= []
+        @errors << e
+      end
+
+      def warning e
+        e = warning_log e
         @errors ||= []
         @errors << e
       end

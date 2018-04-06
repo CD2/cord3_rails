@@ -3,6 +3,8 @@ module Cord
 
   AbstractApiError = Class.new(StandardError)
   StaticApiError = Class.new(StandardError)
+  UnpermittedParameters = Class.new(StandardError)
+  Warning = Class.new(StandardError)
 
   class RecordNotFound < StandardError
     def initialize *ids
