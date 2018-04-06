@@ -1,5 +1,11 @@
 module Cord
-  class ApiBaseController < ActionController::API
+  unless defined? ApiBaseController
+    superclass = Cord.parent_controller
+    superclass = superclass.constantize if superclass.is_a? String
+    ApiBaseController = Class.new(superclass)
+  end
+
+  class ApiBaseController
     include Helpers
 
     def respond

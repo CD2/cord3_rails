@@ -44,7 +44,7 @@ module Cord
         def self.define_create
           collection do
             action :create do
-              resource = driver.new(resource_params)
+              resource = driver.new(resource_params.merge(id: nil))
               instance_exec resource, &crud_callbacks['before_create']
               next if halted?
               instance_exec resource, &crud_callbacks['before_save']

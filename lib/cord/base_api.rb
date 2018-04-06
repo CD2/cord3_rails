@@ -230,6 +230,7 @@ module Cord
         error_log e
         result[:_errors] ||= {}
         result[:_errors][:_sort] = e
+        return driver
       end
       if type_of_keyword(field).in?(%i[field virtual]) && meta_attributes[field][:sortable]
         meta = meta_attributes[field]

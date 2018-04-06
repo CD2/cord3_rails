@@ -61,4 +61,7 @@ module Cord
 
   # How long to hold record caches before regenerating them, unless specified otherwise
   config_setting :default_cache_lifespan, default: 5.minutes
+
+  # The superclass to use for the ApiBaseController
+  config_setting :parent_controller, default: 'ActionController::API'
 end
