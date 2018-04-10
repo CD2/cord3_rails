@@ -364,6 +364,10 @@ module Cord
           SQLString.new(File.read "./app/queries/#{model.name.underscore}/#{normalize name}.sql")
         end
 
+        def promise &block
+          Promise.new &block
+        end
+
         def model_supports_caching? model = nil
           model = infer_model(model)
           model.table_exists? && 'cord_cache'.in?(model.column_names)

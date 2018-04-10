@@ -4,7 +4,6 @@ require 'cord/base_api'
 
 Dir["#{Cord::Engine.root}/lib/cord/spec/**/*.rb"].each { |f| require f }
 
-
 module Cord
   def self.config_setting name, default: nil, choices: nil, type: nil
     mattr_reader name
@@ -62,6 +61,11 @@ module Cord
   # How long to hold record caches before regenerating them, unless specified otherwise
   config_setting :default_cache_lifespan, default: 5.minutes
 
+  # TODO: remove the api base controller and these methods
+
   # The superclass to use for the ApiBaseController
   config_setting :parent_controller, default: 'ActionController::API'
+
+  # A callback for extending the api base controller
+  config_setting :after_controller_load, default: -> {}, type: Proc
 end

@@ -204,6 +204,8 @@ module Cord
   end
 end
 
+Cord.after_controller_load.call
+
 # The response format:
 #
 # {
