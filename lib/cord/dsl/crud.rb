@@ -45,15 +45,15 @@ module Cord
           collection do
             action :create do
               resource = driver.new(resource_params.merge(id: nil))
-              instance_exec resource, &crud_callbacks['before_create']
+              run_crud_callbacks(:before_create, resource)
               next if halted?
-              instance_exec resource, &crud_callbacks['before_save']
+              run_crud_callbacks(:before_save, resource)
               next if halted?
               if resource.save
                 render(id: resource.id)
-                instance_exec resource, &crud_callbacks['after_save']
+                run_crud_callbacks(:after_save, resource)
                 next if halted?
-                instance_exec resource, &crud_callbacks['after_create']
+                run_crud_callbacks(:after_create, resource)
               else
                 error(resource.errors.as_json)
               end
@@ -65,19 +65,19 @@ module Cord
           action :update do |resource|
             resource.with_lock do
               resource.assign_attributes(resource_params)
-              instance_exec resource, &crud_callbacks['before_modify']
+              run_crud_callbacks(:before_modify, resource)
               next if halted?
-              instance_exec resource, &crud_callbacks['before_update']
+              run_crud_callbacks(:before_update, resource)
               next if halted?
-              instance_exec resource, &crud_callbacks['before_save']
+              run_crud_callbacks(:before_save, resource)
               next if halted?
               if resource.save
                 render(id: resource.id)
-                instance_exec resource, &crud_callbacks['after_save']
+                run_crud_callbacks(:after_save, resource)
                 next if halted?
-                instance_exec resource, &crud_callbacks['after_update']
+                run_crud_callbacks(:after_update, resource)
                 next if halted?
-                instance_exec resource, &crud_callbacks['after_modify']
+                run_crud_callbacks(:after_modify, resource)
               else
                 error resource.errors.as_json
               end
@@ -87,14 +87,14 @@ module Cord
 
         def self.define_destroy
           action :destroy do |resource|
-            instance_exec resource, &crud_callbacks['before_modify']
+            run_crud_callbacks(:before_modify, resource)
             next if halted?
-            instance_exec resource, &crud_callbacks['before_destroy']
+            run_crud_callbacks(:before_destroy, resource)
             next if halted?
             resource.destroy
-            instance_exec resource, &crud_callbacks['after_destroy']
+            run_crud_callbacks(:after_destroy, resource)
             next if halted?
-            instance_exec resource, &crud_callbacks['after_modify']
+            run_crud_callbacks(:after_modify, resource)
           end
         end
 
@@ -117,13 +117,20 @@ module Cord
                 raise ArgumentError, 'method "\#{name}" takes unexpected input, use a block'
               end
             }
-            crud_callbacks['#{callback}'] = block
+            crud_callbacks[:#{callback}] << block
           end
           RUBY
         end
 
         def self.permit_params *args
           permitted_params.add *args
+        end
+
+        def run_crud_callbacks key, resource
+          crud_callbacks[key].each do |callback|
+            instance_exec resource, &callback
+            return if halted?
+          end
         end
       end
 

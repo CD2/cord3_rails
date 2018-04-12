@@ -27,7 +27,7 @@ module Cord
     abstract!
 
     self.default_attributes = [:id]
-    self.crud_callbacks = CRUD_CALLBACKS.map { |x| [x, proc {}]}.to_h
+    self.crud_callbacks = CRUD_CALLBACKS.map { |x| [x, []]}.to_h
 
     def render_ids scopes, search = nil, sort = nil
       result = {}
