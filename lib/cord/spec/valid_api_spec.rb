@@ -27,6 +27,13 @@ module Cord
 
         let!(:record) { ::FactoryBot.create(factory_name) }
 
+        before(:all) do
+          @action_on_error = Cord.action_on_error
+          Cord.action_on_error = :raise
+        end
+
+        after(:all) { Cord.action_on_error = @action_on_error }
+
         context 'ignoring default scopes' do
           before(:all) do
             @disable_default_scopes = Cord.disable_default_scopes
