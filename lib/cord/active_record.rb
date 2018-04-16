@@ -54,7 +54,7 @@ module Cord
           end
 
           before_save do
-            if send "#{name}_uid_changed?"
+            if send "will_save_change_to_#{name}_uid?"
               new_cache = send("#{name}_uid") ? send(name)&.reload_cache || {} : {}
               self["#{name}_cache"] = new_cache
             end
@@ -86,20 +86,24 @@ module Cord
       end
 
       def json_type_constraint table, column, type
+        columns = ::ActiveRecord::Base.connection.columns(table)
+        json = (columns.detect { |x| x.name == column.to_s }&.type == :jsonb) ? :jsonb : :json
+        check_constraint table, "#{json}_typeof(#{column}) = '#{type}'", "#{table}_#{column}_is_#{type}"
+      end
+
+      def check_constraint table, condition, name
         reversible do |dir|
           dir.up do
-            columns = ::ActiveRecord::Base.connection.columns(table)
-            json = (columns.detect { |x| x.name == column.to_s }&.type == :jsonb) ? :jsonb : :json
             execute <<-SQL.squish
               ALTER TABLE #{table}
-              ADD CONSTRAINT #{table}_#{column}_is_#{type}
-              CHECK (#{json}_typeof(#{column}) = '#{type}')
+              ADD CONSTRAINT #{name}
+              CHECK (#{condition})
             SQL
           end
           dir.down do
             execute <<-SQL.squish
               ALTER TABLE #{table}
-              DROP CONSTRAINT #{table}_#{column}_is_#{type}
+              DROP CONSTRAINT #{name}
             SQL
           end
         end
@@ -126,6 +130,11 @@ module Cord
         end
 
         def json_type_constraint name, type
+          # TODO
+          # Store the pair in a list somewhere then run through them after create
+        end
+
+        def check_constraint condition, name
           # TODO
           # Store the pair in a list somewhere then run through them after create
         end
