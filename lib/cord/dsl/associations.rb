@@ -44,7 +44,7 @@ module Cord
 
               joins = <<-SQL.squish
                 LEFT JOIN LATERAL (#{query.to_sql}) AS "#{single}_ids_query"
-                USING (id)
+                ON "driver"."id" = "#{single}_ids_query"."id"
               SQL
 
               self.meta(
@@ -73,7 +73,7 @@ module Cord
 
               joins = <<-SQL.squish
                 LEFT JOIN LATERAL (#{query.to_sql}) AS "#{single}_count_query"
-                USING (id)
+                ON "driver"."id" = "#{single}_count_query"."id"
               SQL
 
               self.meta(
@@ -119,7 +119,7 @@ module Cord
 
               joins = <<-SQL.squish
                 LEFT JOIN LATERAL (#{query.to_sql}) AS "#{association_name}_id_query"
-                USING (id)
+                ON "driver"."id" = "#{association_name}_id_query"."id"
               SQL
 
               self.meta(
