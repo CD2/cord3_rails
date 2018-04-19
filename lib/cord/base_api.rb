@@ -18,6 +18,7 @@ module Cord
     include DSL::Associations
     include DSL::BeforeActions
     include DSL::CRUD
+    include DSL::Deference
     include DSL::Keywords
 
     include Helpers

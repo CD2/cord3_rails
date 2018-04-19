@@ -12,15 +12,19 @@ module Cord
             @defined_associations = superclass.defined_associations.deep_dup
           end
 
-          def define_association name, opts, type, auto
-            if defined_associations[normalize(name)][:auto] && opts.none?
+          def define_association name, opts, type, auto, api
+            name = normalize(name)
+
+            if defined_associations[name][:auto] && opts.none?
               warn %(
                 association '#{name}' has already been defined through model inference
                 (#{self.name})
               ).squish
             end
-            defined_associations[normalize(name)][:type] = type
-            defined_associations[normalize(name)][:auto] = auto
+            defined_associations[name][:name] = name
+            defined_associations[name][:type] = type
+            defined_associations[name][:auto] = auto
+            defined_associations[name][:api] = api
           end
 
           def has_many association_name, opts = {}
@@ -29,7 +33,13 @@ module Cord
             single = association_name.to_s.singularize
             reflection = model&.reflect_on_association(association_name)
 
-            define_association(association_name, opts, :has_many, options.delete(:auto))
+            define_association(
+              association_name,
+              opts,
+              reflection&.macro == :has_many ? :has_many : :virtual,
+              options.delete(:auto),
+              api_name
+            )
 
             self.attribute "#{single}_ids", options do |record|
               record.send(association_name).ids
@@ -104,7 +114,13 @@ module Cord
             api_name = options.delete(:api)&.to_s || find_api_name(association_name)
             reflection = model&.reflect_on_association(association_name)
 
-            define_association(association_name, opts, :has_one, options.delete(:auto))
+            define_association(
+              association_name,
+              opts,
+              reflection&.macro == :has_one ? :has_one : :virtual,
+              options.delete(:auto),
+              api_name
+            )
 
             self.attribute "#{association_name}_id", options do |record|
               record.send(association_name)&.id
@@ -116,7 +132,7 @@ module Cord
               SQL
               .select <<-SQL.squish
                 "#{model.table_name}"."id",
-                (array_agg("#{reflection.table_name}"."id"))[1] AS "#{association_name}_id"
+                FIRST("#{reflection.table_name}"."id") AS "#{association_name}_id"
               SQL
 
               joins = <<-SQL.squish
@@ -150,8 +166,15 @@ module Cord
           def belongs_to association_name, opts = {}
             options = opts.to_options
             api_name = options.delete(:api)&.to_s || find_api_name(association_name)
+            reflection = model&.reflect_on_association(association_name)
 
-            define_association(association_name, opts, :belongs_to, options.delete(:auto))
+            define_association(
+              association_name,
+              opts,
+              reflection&.macro == :belongs_to ? :belongs_to : :virtual,
+              options.delete(:auto),
+              api_name
+            )
 
             self.macro association_name do |*attributes|
               begin
@@ -183,9 +206,6 @@ module Cord
               end
               send reflection, name, opts
             end
-          end
-
-          def defer *names, to: association
           end
         end
       end
