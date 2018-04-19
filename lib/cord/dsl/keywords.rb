@@ -8,6 +8,12 @@ module Cord
         array_stores %i[default_attributes blacklisted_attributes]
 
         class << self
+          previous_store_methods = {}
+          %i[attributes macros meta_attributes].each do |s|
+            previous_store_methods[s] = instance_method(s)
+            define_method(s) { model; previous_store_methods[s].bind(self).call }
+          end
+
           def attribute name, options = {}, &block
             return if blacklisted_attributes.include? normalize(name)
             attributes.add name, &block

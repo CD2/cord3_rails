@@ -122,9 +122,7 @@ module Cord
           missing_ids.delete result['id'].to_s
         end
 
-        if invalid_caches.any?
-          update_record_caches(invalid_caches, @records_json) if invalid_caches.any?
-        end
+        update_record_caches(invalid_caches, @records_json) if invalid_caches.any?
       end
 
       @keywords, @options = nil
@@ -139,6 +137,7 @@ module Cord
 
     def initialize controller = nil
       assert_not_abstract
+      self.class.cache_updating_lock
       @controller = controller
     end
 
@@ -257,8 +256,10 @@ module Cord
       api = self.class
       return if api.cache_updating?
 
-      time = Time.current
       records_json = records_json.to_a
+      return unless records_json.any?
+
+      time = Time.current
 
       new_cache_data = records_json.map do |record_json|
         result = { id: record_json['id'], cord_cache: {} }
@@ -278,19 +279,20 @@ module Cord
       query.compact.run_async.finally { api.cache_updated! }
     end
 
-    def self.cache_updating?
+    def self.cache_updating_lock
       @cache_updating_lock ||= Mutex.new
-      @cache_updating_lock.synchronize { !!@cache_updating }
+    end
+
+    def self.cache_updating?
+      cache_updating_lock.synchronize { !!@cache_updating }
     end
 
     def self.cache_updating!
-      @cache_updating_lock ||= Mutex.new
-      @cache_updating_lock.synchronize { @cache_updating = true }
+      cache_updating_lock.synchronize { @cache_updating = true }
     end
 
     def self.cache_updated!
-      @cache_updating_lock ||= Mutex.new
-      @cache_updating_lock.synchronize { @cache_updating = false }
+      cache_updating_lock.synchronize { @cache_updating = false }
     end
 
     def method_missing *args, &block

@@ -6,19 +6,21 @@ module Cord
       included do
         class << self
           def defined_associations
+            model
             return @defined_associations if @defined_associations
-            return @defined_associations = {} if self == ::Cord::BaseApi
+            return @defined_associations = Hash.new { |h, k| h[k] = {} } if self == ::Cord::BaseApi
             @defined_associations = superclass.defined_associations.deep_dup
           end
 
-          def inference_warn name, opts, type
-            if defined_associations[normalize(name)] == :auto && opts.none?
+          def define_association name, opts, type, auto
+            if defined_associations[normalize(name)][:auto] && opts.none?
               warn %(
                 association '#{name}' has already been defined through model inference
                 (#{self.name})
               ).squish
             end
-            defined_associations[normalize(name)] = type
+            defined_associations[normalize(name)][:type] = type
+            defined_associations[normalize(name)][:auto] = auto
           end
 
           def has_many association_name, opts = {}
@@ -27,7 +29,7 @@ module Cord
             single = association_name.to_s.singularize
             reflection = model&.reflect_on_association(association_name)
 
-            inference_warn(association_name, opts, options.delete(:auto) ? :auto : :has_many)
+            define_association(association_name, opts, :has_many, options.delete(:auto))
 
             self.attribute "#{single}_ids", options do |record|
               record.send(association_name).ids
@@ -87,7 +89,7 @@ module Cord
               begin
                 api = find_api(api_name)
               rescue => e
-                next if self.class.defined_associations[normalize(association_name)] == :auto
+                next if self.class.defined_associations[normalize(association_name)][:auto]
                 raise e
               end
 
@@ -102,7 +104,7 @@ module Cord
             api_name = options.delete(:api)&.to_s || find_api_name(association_name)
             reflection = model&.reflect_on_association(association_name)
 
-            inference_warn(association_name, opts, options.delete(:auto) ? :auto : :has_one)
+            define_association(association_name, opts, :has_one, options.delete(:auto))
 
             self.attribute "#{association_name}_id", options do |record|
               record.send(association_name)&.id
@@ -133,7 +135,7 @@ module Cord
               begin
                 api = find_api(api_name)
               rescue => e
-                next if self.class.defined_associations[normalize(association_name)] == :auto
+                next if self.class.defined_associations[normalize(association_name)][:auto]
                 raise e
               end
 
@@ -149,13 +151,13 @@ module Cord
             options = opts.to_options
             api_name = options.delete(:api)&.to_s || find_api_name(association_name)
 
-            inference_warn(association_name, opts, options.delete(:auto) ? :auto : :belongs_to)
+            define_association(association_name, opts, :belongs_to, options.delete(:auto))
 
             self.macro association_name do |*attributes|
               begin
                 api = find_api(api_name)
               rescue => e
-                next if self.class.defined_associations[normalize(association_name)] == :auto
+                next if self.class.defined_associations[normalize(association_name)][:auto]
                 raise e
               end
 
@@ -181,6 +183,9 @@ module Cord
               end
               send reflection, name, opts
             end
+          end
+
+          def defer *names, to: association
           end
         end
       end

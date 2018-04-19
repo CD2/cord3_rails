@@ -146,3 +146,10 @@ end
 ::ActiveRecord::Base.extend Cord::ActiveRecord::Base
 ::ActiveRecord::Migration.include Cord::ActiveRecord::Migration
 ::ActiveRecord::ConnectionAdapters::TableDefinition.include Cord::ActiveRecord::ConnectionAdapters::TableDefinition
+
+# TODO: Refactor this whole file
+::ActiveRecord::Base.instance_eval do
+  def self.first_id
+    limit(1).ids[0]
+  end
+end
