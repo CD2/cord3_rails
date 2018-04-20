@@ -150,6 +150,6 @@ end
 # TODO: Refactor this whole file
 ::ActiveRecord::Base.instance_eval do
   def self.first_id
-    limit(1).ids[0]
+    all.order_values.empty? ? order(:id).limit(1).ids[0] : limit(1).ids[0]
   end
 end
