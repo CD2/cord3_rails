@@ -29,6 +29,21 @@ module Cord
 
     self.default_attributes = [:id]
     self.crud_callbacks = CRUD_CALLBACKS.map { |x| [x, []]}.to_h
+    self.blacklist_attributes :cord_cache
+
+    # For debugging
+    %i[render_ids render_records perform_member_action perform_collection_action].each do |met|
+      define_singleton_method met do |*args|
+        prev_scopes = Cord.disable_default_scopes
+        prev_error = Cord.action_on_error
+        Cord.disable_default_scopes = true
+        Cord.action_on_error = :raise
+        result = new.send(met, *args)
+        Cord.disable_default_scopes = prev_scopes
+        Cord.action_on_error = prev_error
+        result
+      end
+    end
 
     def render_ids scopes, search = nil, sort = nil
       result = {}
@@ -188,7 +203,7 @@ module Cord
       filter_ids = Set.new
       aliases = {}
 
-      ids = ids.map do |x|
+      ids = Array.wrap(ids).map do |x|
         x = normalize(x)
         if custom_aliases.has_key?(x)
           result = instance_eval(&custom_aliases[x])
