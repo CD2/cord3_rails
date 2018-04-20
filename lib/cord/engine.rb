@@ -12,7 +12,7 @@ module Cord
     initializer "cord.action_controller" do
       ActiveSupport.on_load :action_controller do
         AbstractController::Base.send :define_method, :cord_controller? do
-          Cord.in? self.class.parents
+          is_a? ::Cord::ApiBaseController
         end
       end
     end
