@@ -29,5 +29,12 @@ module Cord
 
     alias count size
     alias length size
+
+    def only *args
+      prev = Cord.action_on_unpermitted_parameters
+      Cord.action_on_unpermitted_parameters = nil
+      result = permit(*args)
+      Cord.action_on_unpermitted_parameters = prev
+      result
   end
 end
