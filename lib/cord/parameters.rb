@@ -18,5 +18,16 @@ module Cord
 
       @rejected_parameters = unpermitted_keys(params)
     end
+
+    def to_a
+      to_h.to_a
+    end
+
+    def size
+      keys.size
+    end
+
+    alias count size
+    alias length size
   end
 end
