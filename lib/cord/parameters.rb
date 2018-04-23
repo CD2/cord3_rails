@@ -36,5 +36,6 @@ module Cord
       result = permit(*args)
       Cord.action_on_unpermitted_parameters = prev
       result
+    end
   end
 end
