@@ -24,10 +24,12 @@ module Cord
         @cord_image_sizes
       end
 
-      def cord_file_accessor name, *args, &block
+      def cord_file_accessor name, *args
         name = Cord::BaseApi.normalize name
 
-        dragonfly_accessor name, *args, &block
+        dragonfly_accessor name, *args do
+          after_assign { |attachment| attachment.convert! '-auto-orient' }
+        end
 
         method_name = "#{name}="
         met = instance_method(method_name)
