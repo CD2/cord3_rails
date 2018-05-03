@@ -46,6 +46,10 @@ module Cord
     end
 
     def render_ids scopes, search = nil, sort = nil
+      @calculated_ids ||= {}
+      args = [scopes.uniq.sort, search, sort]
+      return @calculated_ids[args] if @calculated_ids[args]
+
       result = {}
       records = alias_driver(driver)
 
@@ -75,7 +79,7 @@ module Cord
           result[:_errors][name] = e
         end
       end
-      result
+      @calculated_ids[args] = result
     end
 
     def render_records ids, keywords = []
