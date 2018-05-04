@@ -110,6 +110,17 @@ module Cord
           end
         end
       end
+
+      def set_connection new_connection
+        case connection
+        when ::ActiveRecord::ConnectionAdapters::AbstractAdapter
+          @connection = new_connection
+        when ::ActiveRecord::Migration::CommandRecorder
+          connection.instance_variable_set(:@delegate, new_connection)
+        else
+          raise NotImplementedError, "Unexpected class for connection: #{connection.class}"
+        end
+      end
     end
 
     module ConnectionAdapters
