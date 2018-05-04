@@ -94,7 +94,7 @@ module Cord
         cache_selects = @keywords.map do |k|
           next if type_of_keyword(k) == :field
           next unless cache_lifespan = meta_attributes.dig(k, :cached)
-          result = SQLString.new %(
+          result = sql %(
             EVERY((cord_cache -> :key ->> 'time')::timestamp > greatest(:time, updated_at)) AS #{k}
           )
           result.compact.assign(key: k, time: cache_lifespan.ago)
@@ -117,7 +117,7 @@ module Cord
         @keywords.each do |keyword|
           if keyword.in?(valid_caches)
             selects << %(
-              "#{model.table_name}"."cord_cache" -> '#{keyword}' -> 'value' AS "#{keyword}"
+              #{model.quoted_table_name}."cord_cache" -> '#{keyword}' -> 'value' AS "#{keyword}"
             ).squish
             next
           end
@@ -285,10 +285,10 @@ module Cord
         result = { id: record_json['id'], cord_cache: {} }
         fields.each { |f| result[:cord_cache][f] = { value: record_json[f], time: time } }
         result[:cord_cache] = result[:cord_cache].to_json
-        SQLString.new("(:id, :cord_cache::jsonb)").assign(result)
+        sql('(:id, :cord_cache::jsonb)').assign(result)
       end
 
-      query = SQLString.new <<-SQL
+      query = sql <<-SQL
         UPDATE #{model.table_name}
         SET cord_cache = #{model.table_name}.cord_cache || new_cache_data.cord_cache
         FROM (VALUES #{new_cache_data.join(',')}) AS new_cache_data(id, cord_cache)

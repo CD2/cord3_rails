@@ -51,9 +51,9 @@ module Cord
                           (!fallback || (local_meta_attr[:sql] && !local_meta_attr[:joins]))
 
             query = model.left_joins(association[:name].to_sym).group(:id).where(<<-SQL.squish)
-              "#{model.table_name}"."id" = "driver"."id"
+              #{model.quoted_table_name}."id" = "driver"."id"
             SQL
-            .select %("#{model.table_name}"."id")
+            .select %(#{model.quoted_table_name}."id")
 
             if fallback
               query = query.select <<-SQL.squish

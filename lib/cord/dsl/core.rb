@@ -48,7 +48,7 @@ module Cord
 
               @model.columns.each do |col|
                 name = col.name
-                sql = %("#{@model.table_name}"."#{name}")
+                sql = %(#{@model.quoted_table_name}."#{name}")
                 sortable = true
 
                 if (enum = @model.defined_enums[name]) # it's an enum
@@ -64,7 +64,7 @@ module Cord
                 attribute name
                 @model.cord_image_sizes[name].each do |size, _signature|
                   if @model.column_names.include?("#{name}_cache") && !Cord.action_on_missing_image
-                    sql = %("#{@model.table_name}"."#{name}_cache"->'#{size}')
+                    sql = %(#{@model.quoted_table_name}."#{name}_cache"->'#{size}')
                   else
                     sql = nil
                   end
@@ -89,7 +89,7 @@ module Cord
               return @resource_name if @resource_name
               return @resource_name = nil if abstract?
               return @resource_name = name.chomp('Api').underscore if static?
-              @resource_name = model && normalize(model.table_name)
+              @resource_name = model && normalize(model.table_name.gsub('.', '_'))
             end
           end
 

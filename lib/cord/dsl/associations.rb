@@ -47,11 +47,11 @@ module Cord
 
             if reflection&.macro == :has_many
               query = model.left_joins(association_name).group(:id).where(<<-SQL.squish)
-                "#{model.table_name}"."id" = "driver"."id"
+                #{model.quoted_table_name}."id" = "driver"."id"
               SQL
               .select(<<-SQL.squish)
-                "#{model.table_name}"."id",
-                array_remove(array_agg("#{reflection.table_name}"."id"), NULL) AS "#{single}_ids"
+                #{model.quoted_table_name}."id",
+                array_remove(array_agg(#{reflection.quoted_table_name}."id"), NULL) AS "#{single}_ids"
               SQL
 
               joins = <<-SQL.squish
@@ -76,11 +76,11 @@ module Cord
 
             if reflection&.macro == :has_many
               query = model.left_joins(association_name).group(:id).where(<<-SQL.squish)
-                "#{model.table_name}"."id" = "driver"."id"
+                #{model.quoted_table_name}."id" = "driver"."id"
               SQL
               .select <<-SQL.squish
-                "#{model.table_name}"."id",
-                COUNT("#{reflection.table_name}"."id") AS "#{single}_count"
+                #{model.quoted_table_name}."id",
+                COUNT(#{reflection.quoted_table_name}."id") AS "#{single}_count"
               SQL
 
               joins = <<-SQL.squish
@@ -128,11 +128,11 @@ module Cord
 
             if reflection&.macro == :has_one
               query = model.left_joins(association_name).group(:id).where(<<-SQL.squish)
-                "#{model.table_name}"."id" = "driver"."id"
+                #{model.quoted_table_name}."id" = "driver"."id"
               SQL
               .select <<-SQL.squish
-                "#{model.table_name}"."id",
-                FIRST("#{reflection.table_name}"."id") AS "#{association_name}_id"
+                #{model.quoted_table_name}."id",
+                FIRST(#{reflection.quoted_table_name}."id") AS "#{association_name}_id"
               SQL
 
               joins = <<-SQL.squish

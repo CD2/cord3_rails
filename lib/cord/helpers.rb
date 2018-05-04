@@ -121,9 +121,9 @@ module Cord
 
         def require_sql obj
           return obj if obj.is_a? SQLString
-          return SQLString.new(obj.to_sql) if obj.respond_to? :to_sql
-          return SQLString.new(obj) if obj.is_a? String
-          return SQLString.new(obj.all.to_sql) if is_model?(obj)
+          return sql(obj.to_sql) if obj.respond_to? :to_sql
+          return sql(obj) if obj.is_a? String
+          return sql(obj.all.to_sql) if is_model?(obj)
           raise ArgumentError, "expected a query-like object, instead got #{obj.class}"
         end
 
@@ -153,7 +153,7 @@ module Cord
 
           return JSONString.new('[]') if sql.blank?
 
-          response = ::ActiveRecord::Base.connection.execute <<-SQL.squish
+          response = connection.execute <<-SQL.squish
             SELECT
               array_to_json(array_agg(#{fields}))
             FROM
@@ -168,7 +168,7 @@ module Cord
 
           return JSONString.new('[]') if sql.blank?
 
-          response = ::ActiveRecord::Base.connection.execute <<-SQL.squish
+          response = connection.execute <<-SQL.squish
             SELECT
               array_to_json(array_agg(json))
             FROM
@@ -183,7 +183,7 @@ module Cord
 
           return [JSONString.new('[]'), ids] if sql.blank?
 
-          response = ::ActiveRecord::Base.connection.execute <<-SQL.squish
+          response = connection.execute <<-SQL.squish
             SELECT
               array_to_json(array_agg(json)),
               array_agg(json.id)
@@ -359,9 +359,13 @@ module Cord
           model
         end
 
+        def can_infer_model?
+          is_model?(self) || is_record?(self) || is_api?(self)
+        end
+
         def load_sql name, model = nil
           model = infer_model(model)
-          SQLString.new(File.read "./app/queries/#{model.name.underscore}/#{normalize name}.sql")
+          sql(File.read "./app/queries/#{model.name.underscore}/#{normalize name}.sql")
         end
 
         def promise &block
@@ -371,6 +375,14 @@ module Cord
         def model_supports_caching? model = nil
           model = infer_model(model)
           model.table_exists? && 'cord_cache'.in?(model.column_names)
+        end
+
+        def connection
+          can_infer_model? ? infer_model.connection : ::ActiveRecord::Base.connection
+        end
+
+        def sql arg
+          SQLString.new(arg, connection: connection)
         end
       end
 

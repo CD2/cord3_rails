@@ -1,6 +1,7 @@
 module Cord
   class SQLString
-    def initialize obj = nil
+    def initialize obj = nil, connection: ::ActiveRecord::Base.connection
+      @connection = connection
       if Cord.helpers.is_driver?(obj)
         self.sql = obj.to_sql
       else
@@ -18,11 +19,11 @@ module Cord
     end
 
     def run
-      ::ActiveRecord::Base.connection.execute(sql_with_variables)
+      @connection.execute(sql_with_variables)
     end
 
     def run_async
-      ::ActiveRecord::Base.connection.send(:log, sql_with_variables, 'Async SQL') {}
+      @connection.send(:log, sql_with_variables, 'Async SQL') {}
       Promise.new { ::ActiveRecord::Base.logger.silence { response = run } }
     end
 
@@ -45,7 +46,7 @@ module Cord
     def explain
       cmd = sql_with_variables
       cmd = "EXPLAIN #{cmd}" unless cmd.match(/\Aexplain/i)
-      response = ::ActiveRecord::Base.connection.execute(cmd)
+      response = @connection.execute(cmd)
       puts
       response.values.flatten.map { |x| puts x }
       puts

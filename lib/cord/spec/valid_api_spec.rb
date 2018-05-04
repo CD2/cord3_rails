@@ -7,7 +7,7 @@ module Cord
         factory_name = described_class.resource_name.singularize
         factory_failed = false
 
-        ::ActiveRecord::Base.transaction do
+        described_class.model.transaction do
           begin
             ::FactoryBot.create(factory_name)
           rescue => e
