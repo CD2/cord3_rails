@@ -28,8 +28,7 @@ module Cord
         name = Cord::BaseApi.normalize name
 
         dragonfly_accessor name, *args do
-          # Hah nope, this breaks on non-images
-          # after_assign { |attachment| attachment.convert! '-auto-orient' }
+          after_assign { |attachment| attachment.convert!('-auto-orient') if attachment.image? }
         end
 
         method_name = "#{name}="
