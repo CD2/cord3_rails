@@ -131,24 +131,31 @@ module Cord
           s.to_s.downcase
         end
 
-        def normalize_hash h
-          h.map { |k, v| [normalize(k), v] }.to_h
-        end
-
-        def normalize_array a
-          a.map { |x| normalize x }
+        def _normalize arg
+          case arg
+          when Array
+            arg.flatten.map { |x| _normalize x }
+          when Hash
+            arg.map { |k, v| [_normalize(k), _normalize(v)] }.to_h
+          when String, Symbol
+            arg.to_s.downcase
+          else
+            arg
+          end
         end
 
         def pluck_to_json driver, *fields
+          normalize_args
+
           sql = require_sql(driver)
 
           fields = fields.flatten
           if fields.none?
             raise ArgumentError, 'requires at least one field to pluck'
           elsif fields.one?
-            fields = "json.#{normalize fields[0]}"
+            fields = "json.#{fields[0]}"
           else
-            fields = %(json_build_array(#{fields.map { |f| "json.#{normalize f}" }.join(',')}))
+            fields = %(json_build_array(#{fields.map { |f| "json.#{f}" }.join(',')}))
           end
 
           return JSONString.new('[]') if sql.blank?
@@ -228,11 +235,11 @@ module Cord
 
           indent = indent_str * indent_level
 
-          flat_render = -> (x) {
+          flat_render = -> (v) {
             json_inspect(x, indent_str: indent_str, max_width: max_width, flat: true)
           }
 
-          array_nest_render = -> (x) {
+          array_nest_render = -> (v) {
             json_inspect(
               x,
               indent_level: indent_level + 1,
@@ -241,7 +248,7 @@ module Cord
             )
           }
 
-          hash_nest_render = -> (x, n) {
+          hash_nest_render = -> (v, n) {
             json_inspect(
               x,
               indent_level: indent_level + 1,
@@ -319,7 +326,7 @@ module Cord
           end
 
           # wait for the threads to finish
-          threads.each &:join
+          threads.each(&:join)
 
           result
         end
@@ -364,12 +371,13 @@ module Cord
         end
 
         def load_sql name, model = nil
+          normalize_args
           model = infer_model(model)
-          sql(File.read "./app/queries/#{model.name.underscore}/#{normalize name}.sql")
+          sql(File.read "./app/queries/#{model.name.underscore}/#{name}.sql")
         end
 
         def promise &block
-          Promise.new &block
+          Promise.new(&block)
         end
 
         def model_supports_caching? model = nil
@@ -386,7 +394,21 @@ module Cord
         end
       end
 
-      delegate *(methods - undelegated_methods), to: :class
+      delegate(*(methods - undelegated_methods), to: :class)
+
+      def self.normalize_args
+        method_name = caller[0] =~ /`([^']*)'/ && $1
+        bind = binding.of_caller(1)
+        met = bind.eval "method(\"#{method_name}\")"
+        met.parameters.map { |_, v| v && bind.eval("#{v} = ::Cord.helpers._normalize(#{v})") }
+      end
+
+      def normalize_args
+        method_name = caller[0] =~ /`([^']*)'/ && $1
+        bind = binding.of_caller(1)
+        met = bind.eval "method(\"#{method_name}\")"
+        met.parameters.map { |_, v| v && bind.eval("#{v} = ::Cord.helpers._normalize(#{v})") }
+      end
 
       def self.assert_not_abstract api = self
         raise AbstractApiError, "#{api.name} is abstract" if api.abstract?
