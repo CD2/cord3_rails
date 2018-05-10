@@ -11,7 +11,9 @@ module Cord
 
     def valid?
       begin
-        run
+        cmd = sql_with_variables
+        cmd = "EXPLAIN #{cmd}" unless cmd.match(/\Aexplain/i)
+        ::ActiveRecord::Base.logger.silence { @connection.execute(cmd) }
         true
       rescue
         false
@@ -24,7 +26,13 @@ module Cord
 
     def run_async
       @connection.send(:log, sql_with_variables, 'Async SQL') {}
-      Promise.new { ::ActiveRecord::Base.logger.silence { response = run } }
+      Promise.new { ::ActiveRecord::Base.logger.silence { run } }
+    end
+
+    def to_json
+      return JSONString.new('[]') if blank?
+      response = @connection.execute "SELECT array_to_json(array_agg(json)) FROM (#{to_s}) AS json"
+      JSONString.new(response.values.first.first || '[]')
     end
 
     attr_reader :sql
@@ -55,7 +63,7 @@ module Cord
 
     def has_variable? k
       k = symbolize(k)
-      @variable_keys ||= sql.scan(/(?<!:):([a-zA-Z]\w*)/).flatten.uniq.map { |k| symbolize(k) }
+      @variable_keys ||= sql.scan(/(?<!:):([a-zA-Z]\w*)/).flatten.uniq.map { |v| symbolize(v) }
       @variable_keys.include?(k)
     end
 
@@ -76,7 +84,11 @@ module Cord
 
     def sql_with_variables
       sql.gsub(/(?<!:):([a-zA-Z]\w*)/) do
-        variables.has_key?(symbolize($1)) ? Cord.helpers.escape_sql(self[$1]) : ":#{$1}"
+        if variables.has_key?(symbolize($1))
+          self[$1].is_a?(SQLString) ? self[$1].to_s : Cord.helpers.escape_sql(self[$1])
+        else
+          ":#{$1}"
+        end
       end
     end
 

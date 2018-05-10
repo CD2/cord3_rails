@@ -123,7 +123,7 @@ module Cord
         end
 
         def self.permit_params *args
-          permitted_params.add *args
+          permitted_params.add(*args)
         end
 
         def run_crud_callbacks key, resource

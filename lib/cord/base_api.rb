@@ -103,7 +103,7 @@ module Cord
         if cache_selects.any?
           cache_check = model.where(id: records).select(cache_selects.compact.join(', '))
           valid_caches, invalid_caches = cache_check.raw[0].partition { |_k, v| v }.map do |x|
-            x.map &:first
+            x.map(&:first)
           end
         end
       end
@@ -214,7 +214,7 @@ module Cord
           result = result.id if is_record?(result)
           result = normalize(result)
           filter_ids << result
-          aliases[x] = result.to_i
+          aliases[x] = result.to_s
           nil
         else
           x
@@ -228,7 +228,7 @@ module Cord
         key = normalize(key)
         driver.where(key => ids).pluck('id', key).each do |id, value|
           id = normalize(id)
-          aliases[value] = id.to_i
+          aliases[value] = id.to_s
           filter_ids << id
           discovered_aliases << value
         end
