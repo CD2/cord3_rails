@@ -131,6 +131,14 @@ module Cord
           s.to_s.downcase
         end
 
+        def normalize_hash h
+          h.map { |k, v| [normalize(k), v] }.to_h
+        end
+
+        def normalize_array a
+          a.map { |x| normalize x }
+        end
+
         def _normalize arg
           case arg
           when Array
