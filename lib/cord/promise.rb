@@ -7,14 +7,14 @@ module Cord
 
     def then &block
       raise ArgumentError, 'no block given' unless block_given?
-      self.class.new { safe_call(block, unsafe_await) }
+      self.class.new { safe_call(block, await) }
     end
 
     def catch &block
       raise ArgumentError, 'no block given' unless block_given?
       self.class.new do
         begin
-          unsafe_await
+          await
         rescue => e
           safe_call(block, e)
         end
@@ -24,25 +24,18 @@ module Cord
     def finally &block
       raise ArgumentError, 'no block given' unless block_given?
       self.class.new do
-        begin
-          unsafe_await
-        rescue
-        ensure
-          block.call
-        end
+        # See https://bugs.ruby-lang.org/issues/13882 for I'm not using 'ensure'
+        await rescue nil
+        block.call
       end
     end
 
     def await
-      unsafe_await rescue nil
-    end
-
-    private
-
-    def unsafe_await
       @thread.join
       @result
     end
+
+    private
 
     def safe_call block, arg
       block.arity == 0 ? block.call : block.call(arg)
