@@ -2,6 +2,8 @@ require 'cord/engine'
 require 'cord/active_record'
 require 'cord/base_api'
 
+require 'binding_of_caller'
+
 Dir["#{Cord::Engine.root}/lib/cord/spec/**/*.rb"].each { |f| require f }
 
 module Cord
