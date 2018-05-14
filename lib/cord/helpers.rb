@@ -244,12 +244,12 @@ module Cord
           indent = indent_str * indent_level
 
           flat_render = -> (v) {
-            json_inspect(x, indent_str: indent_str, max_width: max_width, flat: true)
+            json_inspect(v, indent_str: indent_str, max_width: max_width, flat: true)
           }
 
           array_nest_render = -> (v) {
             json_inspect(
-              x,
+              v,
               indent_level: indent_level + 1,
               indent_str: indent_str,
               max_width: max_width - indent_str.size,
@@ -258,7 +258,7 @@ module Cord
 
           hash_nest_render = -> (v, n) {
             json_inspect(
-              x,
+              v,
               indent_level: indent_level + 1,
               indent_str: indent_str,
               max_width: max_width - indent_str.size,
