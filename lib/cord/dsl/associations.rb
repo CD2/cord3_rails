@@ -51,7 +51,7 @@ module Cord
               SQL
               .select(<<-SQL.squish)
                 #{model.quoted_table_name}."id",
-                array_remove(array_agg(#{reflection.quoted_table_name}."id"), NULL) AS "#{single}_ids"
+                array_remove(array_agg(#{predicted_table_name(reflection)}."id"), NULL) AS "#{single}_ids"
               SQL
 
               joins = <<-SQL.squish
@@ -80,7 +80,7 @@ module Cord
               SQL
               .select <<-SQL.squish
                 #{model.quoted_table_name}."id",
-                COUNT(#{reflection.quoted_table_name}."id") AS "#{single}_count"
+                COUNT(#{predicted_table_name(reflection)}."id") AS "#{single}_count"
               SQL
 
               joins = <<-SQL.squish
@@ -132,7 +132,7 @@ module Cord
               SQL
               .select <<-SQL.squish
                 #{model.quoted_table_name}."id",
-                FIRST(#{reflection.quoted_table_name}."id") AS "#{association_name}_id"
+                FIRST(#{predicted_table_name(reflection)}."id") AS "#{association_name}_id"
               SQL
 
               joins = <<-SQL.squish
@@ -206,6 +206,14 @@ module Cord
               end
               send reflection, name, opts
             end
+          end
+
+          def predicted_table_name reflection
+            name = reflection.name
+            @predicted_table_names ||= {}
+            return @predicted_table_names[name] if @predicted_table_names[name]
+            table_name = model.left_joins(name).arel.source.right[-1].left.name
+            @predicted_table_names[name] = connection.quote_table_name(table_name)
           end
         end
       end
