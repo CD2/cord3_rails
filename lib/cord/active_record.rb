@@ -43,7 +43,7 @@ module Cord
               return
             end
           end
-          met.bind(self).call(val)
+          ActiveSupport::Deprecation.silence { met.bind(self).call(val) }
         end
 
         define_method name do
@@ -88,7 +88,7 @@ module Cord
       end
 
       def json_type_constraint table, column, type
-        columns = ::ActiveRecord::Base.connection.columns(table)
+        columns = get_connection.columns(table)
         json = (columns.detect { |x| x.name == column.to_s }&.type == :jsonb) ? :jsonb : :json
         check_constraint table, "#{json}_typeof(#{column}) = '#{type}'", "#{table}_#{column}_is_#{type}"
       end
@@ -117,6 +117,17 @@ module Cord
           @connection = new_connection
         when ::ActiveRecord::Migration::CommandRecorder
           connection.instance_variable_set(:@delegate, new_connection)
+        else
+          raise NotImplementedError, "Unexpected class for connection: #{connection.class}"
+        end
+      end
+
+      def get_connection
+        case connection
+        when ::ActiveRecord::ConnectionAdapters::AbstractAdapter
+          connection
+        when ::ActiveRecord::Migration::CommandRecorder
+          connection.instance_variable_get(:@delegate)
         else
           raise NotImplementedError, "Unexpected class for connection: #{connection.class}"
         end
