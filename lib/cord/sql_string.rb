@@ -26,7 +26,11 @@ module Cord
 
     def run_async
       @connection.send(:log, sql_with_variables, 'Async SQL') {}
-      Promise.new { ::ActiveRecord::Base.logger.silence { run } }
+      Promise.new do
+        @connection.pool.with_connection do |thread_connection|
+          ::ActiveRecord::Base.logger.silence { thread_connection.execute(sql_with_variables) }
+        end
+      end
     end
 
     def to_json
