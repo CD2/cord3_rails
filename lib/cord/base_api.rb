@@ -244,22 +244,41 @@ module Cord
     def apply_sort(driver, sort, result: {})
       assert_driver(driver)
       field, dir = sort.downcase.split(' ')
-      unless dir.in?(%w[asc desc])
-        e = "'#{dir}' is not a valid sort direction, expected 'asc' or 'desc'"
+
+      sorting_error = proc { |e|
         error_log e
         result[:_errors] ||= {}
         result[:_errors][:_sort] = e
         return driver
+      }
+
+      unless dir.in?(%w[asc desc])
+        sorting_error["'#{dir}' is not a valid sort direction, expected 'asc' or 'desc'"]
       end
       if type_of_keyword(field).in?(%i[field virtual]) && meta_attributes[field][:sortable]
         meta = meta_attributes[field]
         driver.joins(meta[:joins]).order(%(#{meta[:sql]} #{dir.upcase}))
+      elsif field.include?('.') && (parts = field.split('.')).size == 2
+        association = self.class.defined_associations.fetch(parts[0], {})
+
+        case association[:type]
+        when :has_many
+          sorting_error["cannot sort by attributes from the has_many association '#{parts[0]}'"]
+        when :has_one, :belongs_to
+          unless (meta = load_api(association[:api]).meta_attributes[parts[1]])
+            sorting_error["no attribute '#{parts[1]}' has been defined for #{association[:api]}"]
+          end
+          unless meta[:sql] && !meta[:joins] && meta[:sortable]
+            sorting_error["attribute '#{parts[1]}' for #{association[:api]} is not sortable"]
+          end
+          driver.left_joins(parts[0].to_sym).order(%(#{meta[:sql]} #{dir.upcase}))
+        when :virtual
+          sorting_error["cannot sort by attributes from the virtual association '#{parts[0]}'"]
+        when nil
+          sorting_error["no association '#{parts[0]}' has been defined"]
+        end
       else
-        e = "'#{field}' does not match any sortable attributes"
-        error_log e
-        result[:_errors] ||= {}
-        result[:_errors][:_sort] = e
-        driver
+        sorting_error["'#{field}' does not match any sortable attributes"]
       end
     end
 
