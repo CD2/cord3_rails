@@ -51,7 +51,7 @@ module Cord
               SQL
               .select(<<-SQL.squish)
                 #{model.quoted_table_name}."id",
-                array_remove(array_agg(#{predicted_table_name(reflection)}."id"), NULL) AS "#{single}_ids"
+                array_remove(array_agg(DISTINCT #{predicted_table_name(reflection)}."id"), NULL) AS "#{single}_ids"
               SQL
 
               joins = <<-SQL.squish
@@ -80,7 +80,7 @@ module Cord
               SQL
               .select <<-SQL.squish
                 #{model.quoted_table_name}."id",
-                COUNT(#{predicted_table_name(reflection)}."id") AS "#{single}_count"
+                COUNT(DISTINCT #{predicted_table_name(reflection)}."id") AS "#{single}_count"
               SQL
 
               joins = <<-SQL.squish
