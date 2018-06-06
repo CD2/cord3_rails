@@ -55,7 +55,7 @@ module Cord
                 next if halted?
                 run_crud_callbacks(:after_create, resource)
               else
-                error(resource.errors.as_json.as_json)
+                error(resource.errors.to_json)
               end
             end
           end
@@ -79,7 +79,7 @@ module Cord
                 next if halted?
                 run_crud_callbacks(:after_modify, resource)
               else
-                error resource.errors.as_json.as_json
+                error(resource.errors.to_json)
               end
             end
           end
