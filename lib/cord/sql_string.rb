@@ -55,10 +55,12 @@ module Cord
       sql_with_variables
     end
 
-    def explain
+    def explain force_indexes: false
       cmd = sql_with_variables
-      cmd = "EXPLAIN #{cmd}" unless cmd.match(/\Aexplain/i)
+      cmd = "EXPLAIN #{cmd}" unless cmd.match(/\A\s*explain/i)
+      @connection.execute('SET enable_seqscan=off') if force_indexes
       response = @connection.execute(cmd)
+      @connection.execute('SET enable_seqscan=on') if force_indexes
       puts
       response.values.flatten.map { |x| puts x }
       puts
