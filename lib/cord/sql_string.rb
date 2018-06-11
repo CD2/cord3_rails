@@ -12,7 +12,7 @@ module Cord
     def valid?
       begin
         cmd = sql_with_variables
-        cmd = "EXPLAIN #{cmd}" unless cmd.match(/\Aexplain/i)
+        cmd = "EXPLAIN #{cmd}" unless cmd.match(/\A\s*explain/i)
         ::ActiveRecord::Base.logger.silence { @connection.execute(cmd) }
         true
       rescue
@@ -55,7 +55,7 @@ module Cord
       sql_with_variables
     end
 
-    def explain force_indexes: false
+    def explain force_indexes: true
       cmd = sql_with_variables
       cmd = "EXPLAIN #{cmd}" unless cmd.match(/\A\s*explain/i)
       @connection.execute('SET enable_seqscan=off') if force_indexes
