@@ -67,6 +67,7 @@ module Cord
           when :raise
             raise e
           end
+          Cord.after_error&.call(e)
           e
         end
 
@@ -399,6 +400,15 @@ module Cord
 
         def sql arg
           SQLString.new(arg, connection: connection)
+        end
+
+        def table_info arg
+          if is_model?(arg)
+            { name: arg.quoted_table_name, columns: arg.columns }
+          else
+            arg = connection.quote_table_name(arg)
+            { name: arg, columns: connection.columns(arg) }
+          end
         end
       end
 

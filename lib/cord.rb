@@ -36,6 +36,9 @@ module Cord
   # This includes those raised by calling error() in an action
   config_setting :action_on_error, default: :log, choices: [:log, :raise, nil]
 
+  # Runs on every error
+  config_setting :after_error, type: Proc
+
   # When false, warnings will be not be printed in the console or added to the _warnings response
   config_setting :log_warnings, default: true
 
