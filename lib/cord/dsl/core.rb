@@ -30,9 +30,10 @@ module Cord
           def driver
             assert_not_abstract
             assert_not_static
+            unscoped = model.default_scoped
             return @driver if @driver && (@disable_default_scopes == Cord.disable_default_scopes)
-            return @driver = model.all if (@disable_default_scopes = Cord.disable_default_scopes)
-            @driver = default_scopes.inject(model.all) do |driver, scope|
+            return @driver = unscoped if (@disable_default_scopes = Cord.disable_default_scopes)
+            @driver = default_scopes.inject(unscoped) do |driver, scope|
               apply_scope(driver, *scope)
             end
           end
@@ -133,9 +134,10 @@ module Cord
       def driver
         assert_not_abstract
         assert_not_static
+        unscoped = model.default_scoped
         return @driver if @driver && (@disable_default_scopes == Cord.disable_default_scopes)
-        return @driver = model.all if (@disable_default_scopes = Cord.disable_default_scopes)
-        @driver = default_scopes.inject(model.all) do |driver, scope|
+        return @driver = unscoped if (@disable_default_scopes = Cord.disable_default_scopes)
+        @driver = default_scopes.inject(unscoped) do |driver, scope|
           apply_scope(driver, *scope)
         end
       end

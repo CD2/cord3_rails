@@ -67,7 +67,7 @@ module Cord
           when :raise
             raise e
           end
-          # Cord.after_error&.call(e)
+          Cord.after_error.arity == 0 ? Cord.after_error.call : Cord.after_error.call(e)
           e
         end
 
