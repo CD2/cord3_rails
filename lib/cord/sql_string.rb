@@ -65,6 +65,9 @@ module Cord
       response.values.flatten.map { |x| puts x }
       puts
       self
+    rescue => e
+      @connection.execute('SET enable_seqscan=on') if force_indexes
+      raise e
     end
 
     def has_variable? k
