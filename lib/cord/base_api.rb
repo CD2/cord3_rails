@@ -208,11 +208,11 @@ module Cord
       aliases = {}
 
       ids = Array.wrap(ids).map do |x|
-        x = normalize(x)
+        x = x.to_s
         if custom_aliases.has_key?(x)
           result = instance_eval(&custom_aliases[x])
           result = result.id if is_record?(result)
-          result = normalize(result)
+          result = result.to_s
           filter_ids << result
           aliases[x] = result.to_s
           nil
@@ -227,8 +227,8 @@ module Cord
         discovered_aliases = []
         key = normalize(key)
         driver.where(key => ids).pluck('id', key).each do |id, value|
-          id = normalize(id)
-          aliases[value] = id.to_s
+          id = id.to_s
+          aliases[value] = id
           filter_ids << id
           discovered_aliases << value
         end
