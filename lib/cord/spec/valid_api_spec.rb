@@ -69,7 +69,13 @@ module Cord
           it 'can render every defined attribute' do
             attributes = described_class.attributes.keys
             result = subject.records([record.id], attributes: attributes).first.keys
-            expect(result).to include *attributes
+            expect(result).to include(*attributes)
+          end
+
+          it 'can render every defined field' do
+            fields = described_class.meta_attributes.select { |_k, v| v[:sql] }.map &:first
+            result = subject.records([record.id], attributes: fields).first.keys
+            expect(result).to include(*fields)
           end
 
           it 'can perform every defined macro without error' do
