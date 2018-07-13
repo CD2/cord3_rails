@@ -28,6 +28,7 @@ module Cord
     abstract!
 
     self.default_attributes = [:id]
+    self.scope :all
     self.crud_callbacks = CRUD_CALLBACKS.map { |x| [x, []]}.to_h
     self.blacklist_attributes :cord_cache
 
