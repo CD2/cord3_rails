@@ -12,7 +12,7 @@ module Cord
             @defined_associations = superclass.defined_associations.deep_dup
           end
 
-          def define_association name, opts, type, auto, api
+          def define_association name, opts, type, mask_type, auto, api
             name = normalize(name)
 
             if defined_associations[name][:auto] && opts.none?
@@ -23,6 +23,7 @@ module Cord
             end
             defined_associations[name][:name] = name
             defined_associations[name][:type] = type
+            defined_associations[name][:mask_type] = mask_type
             defined_associations[name][:auto] = auto
             defined_associations[name][:api] = api
           end
@@ -37,6 +38,7 @@ module Cord
               association_name,
               opts,
               reflection&.macro == :has_many ? :has_many : :virtual,
+              :has_many,
               options.delete(:auto),
               api_name
             )
@@ -118,6 +120,7 @@ module Cord
               association_name,
               opts,
               reflection&.macro == :has_one ? :has_one : :virtual,
+              :has_one,
               options.delete(:auto),
               api_name
             )
@@ -172,6 +175,7 @@ module Cord
               association_name,
               opts,
               reflection&.macro == :belongs_to ? :belongs_to : :virtual,
+              :belongs_to,
               options.delete(:auto),
               api_name
             )
