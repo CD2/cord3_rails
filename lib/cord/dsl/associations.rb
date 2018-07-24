@@ -44,7 +44,7 @@ module Cord
             )
 
             self.attribute "#{single}_ids", options do |record|
-              record.send(association_name).ids
+              record.send(association_name).ids.uniq
             end
 
             if reflection&.macro == :has_many
@@ -72,7 +72,7 @@ module Cord
               if requested?("#{single}_ids")
                 get_attribute("#{single}_ids").size
               else
-                record.send(association_name).size
+                record.send(association_name).except(:order).distinct.count
               end
             end
 
