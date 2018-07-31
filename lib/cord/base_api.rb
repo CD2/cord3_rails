@@ -304,7 +304,7 @@ module Cord
       new_cache_data = records_json.map do |record_json|
         result = { id: record_json['id'], cord_cache: {} }
         fields.each { |f| result[:cord_cache][f] = { value: record_json[f], time: time } }
-        result[:cord_cache] = result[:cord_cache].to_json
+        result[:cord_cache] = JSONString.generate(result[:cord_cache]).to_s
         sql('(:id, :cord_cache::jsonb)').assign(result)
       end
 

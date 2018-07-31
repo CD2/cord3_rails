@@ -24,7 +24,7 @@ module Cord
     def finally &block
       raise ArgumentError, 'no block given' unless block_given?
       self.class.new do
-        # See https://bugs.ruby-lang.org/issues/13882 for I'm not using 'ensure'
+        # See https://bugs.ruby-lang.org/issues/13882 for why I'm not using 'ensure'
         await rescue nil
         block.call
       end
@@ -33,6 +33,10 @@ module Cord
     def await
       @thread.join
       @result
+    end
+
+    def to_json
+      await.to_json
     end
 
     private
