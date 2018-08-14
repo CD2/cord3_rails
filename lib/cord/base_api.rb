@@ -139,7 +139,7 @@ module Cord
 
         records.each do |record|
           result = render_record(record)
-          @records_json << result
+          @records_json << result if result['id'].to_s.in?(ids)
           missing_ids.delete result['id'].to_s
         end
 
