@@ -389,6 +389,18 @@ module Cord
           Promise.new(&block)
         end
 
+        def await value
+          return value.await if value.respond_to?(:await)
+          case value
+          when Thread
+            value.join
+          when Proc, Method
+            value.call
+          else
+            value
+          end
+        end
+
         def model_supports_caching? model = nil
           model = infer_model(model)
           model.table_exists? && 'cord_cache'.in?(model.column_names)
