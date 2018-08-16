@@ -126,7 +126,11 @@ module Cord
           if meta_attributes[keyword][:joins]
             joins << meta_attributes[keyword][:joins]
           end
-          selects << %(#{await meta_attributes[keyword][:sql]} AS "#{keyword}")
+
+          sql = meta_attributes[keyword][:sql]
+          sql = sql.is_a?(Proc) ? instance_exec(&sql) : sql
+
+          selects << %(#{sql} AS "#{keyword}")
         end
 
         records = alias_driver(records).joins(joins).select(selects)
@@ -258,7 +262,11 @@ module Cord
       end
       if type_of_keyword(field).in?(%i[field virtual]) && meta_attributes[field][:sortable]
         meta = meta_attributes[field]
-        driver.joins(meta[:joins]).order(%(#{await meta[:sql]} #{dir.upcase}))
+
+        sql = meta[:sql]
+        sql = sql.is_a?(Proc) ? instance_exec(&sql) : sql
+
+        driver.joins(meta[:joins]).order(%(#{sql} #{dir.upcase}))
       elsif field.include?('.') && (parts = field.split('.')).size == 2
         association = self.class.defined_associations.fetch(parts[0], {})
 
@@ -272,7 +280,11 @@ module Cord
           unless meta[:sql] && !meta[:joins] && meta[:sortable]
             sorting_error["attribute '#{parts[1]}' for #{association[:api]} is not sortable"]
           end
-          driver.left_joins(parts[0].to_sym).order(%(#{await meta[:sql]} #{dir.upcase}))
+
+          sql = meta[:sql]
+          sql = sql.is_a?(Proc) ? instance_exec(&sql) : sql
+
+          driver.left_joins(parts[0].to_sym).order(%(#{sql} #{dir.upcase}))
         when :virtual
           sorting_error["cannot sort by attributes from the virtual association '#{parts[0]}'"]
         when nil
@@ -287,7 +299,8 @@ module Cord
       assert_driver(driver)
       conditions = searchable_columns.map do |col|
         col = meta_attributes.dig(normalize(col), :sql) || col
-        "#{await col} ILIKE :term"
+        col = col.is_a?(Proc) ? instance_exec(&col) : col
+        "#{col} ILIKE :term"
       end
       driver.where(conditions.join(' OR '), term: "%#{search}%")
     end
