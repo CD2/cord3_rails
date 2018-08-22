@@ -5,7 +5,7 @@ module Cord
 
       included do
         class << self
-          def defer *names, to:, fallback: false
+          def defer *names, to:, fallback: false, prefix: false
             to = normalize(to)
             association = defined_associations.fetch(to, {})
 
@@ -13,7 +13,9 @@ module Cord
             when :has_many
               raise ArgumentError, "cannot defer attributes to the has_many association '#{to}'"
             when :has_one, :belongs_to
-              names.each { |name| defer_single normalize(name), association, fallback: fallback }
+              names.each do |name|
+                defer_single normalize(name), association, fallback: fallback, prefix: prefix
+              end
             when :virtual
               raise ArgumentError, "cannot defer attributes to the virtual association '#{to}'"
             when nil
@@ -21,10 +23,12 @@ module Cord
             end
           end
 
-          def defer_single name, association, fallback:
-            self.attribute(name) if fallback && !self.attributes[name]
-            local_attr = self.attributes[name]
-            local_meta_attr = (meta_attributes[name].deep_dup || {})
+          def defer_single name, association, fallback:, prefix:
+            local_name = prefix ? "#{association[:name]}_#{name}" : name
+
+            self.attribute(local_name) if fallback && !self.attributes[local_name]
+            local_attr = self.attributes[local_name]
+            local_meta_attr = (meta_attributes[local_name].deep_dup || {})
 
             foreign_api = find_api(association[:api])
 
@@ -35,7 +39,7 @@ module Cord
               )
             end
 
-            self.attribute(name) do |r|
+            self.attribute(local_name) do |r|
               if fallback
                 local = local_attr[r]
                 next local unless local.nil?
