@@ -128,7 +128,7 @@ module Cord
           end
 
           sql = meta_attributes[keyword][:sql]
-          sql = sql.is_a?(Proc) ? instance_exec(&sql) : sql
+          sql = sql.is_a?(Proc) ? instance_exec(*[records][0...sql.arity], &sql) : sql
 
           selects << %(#{sql} AS "#{keyword}")
         end
@@ -264,7 +264,7 @@ module Cord
         meta = meta_attributes[field]
 
         sql = meta[:sql]
-        sql = sql.is_a?(Proc) ? instance_exec(&sql) : sql
+        sql = sql.is_a?(Proc) ? instance_exec(*[driver][0...sql.arity], &sql) : sql
 
         driver.joins(meta[:joins]).order(%(#{sql} #{dir.upcase}))
       elsif field.include?('.') && (parts = field.split('.')).size == 2
@@ -282,7 +282,7 @@ module Cord
           end
 
           sql = meta[:sql]
-          sql = sql.is_a?(Proc) ? instance_exec(&sql) : sql
+          sql = sql.is_a?(Proc) ? instance_exec(*[driver][0...sql.arity], &sql) : sql
 
           driver.left_joins(parts[0].to_sym).order(%(#{sql} #{dir.upcase}))
         when :virtual
@@ -299,7 +299,7 @@ module Cord
       assert_driver(driver)
       conditions = searchable_columns.map do |col|
         col = meta_attributes.dig(normalize(col), :sql) || col
-        col = col.is_a?(Proc) ? instance_exec(&col) : col
+        col = col.is_a?(Proc) ? instance_exec(*[driver][0...col.arity], &col) : col
         "#{col} ILIKE :term"
       end
       driver.where(conditions.join(' OR '), term: "%#{search}%")
