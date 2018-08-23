@@ -74,7 +74,7 @@ module Cord
             SQL
 
             self.meta(
-              name,
+              local_name,
               joins: joins,
               sql: %("#{association[:name]}_#{name}_query"."#{association[:name]}_#{name}")
             )
