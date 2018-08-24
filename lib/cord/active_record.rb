@@ -28,7 +28,9 @@ module Cord
         name = Cord::BaseApi.normalize name
 
         dragonfly_accessor name, *args do
-          after_assign { |attachment| attachment.convert!('-auto-orient') if attachment.image? }
+          after_assign do |attachment|
+            attachment.convert!('-auto-orient') if attachment.ext != 'pdf' && attachment.image?
+          end
         end
 
         method_name = "#{name}="
