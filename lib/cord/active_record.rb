@@ -48,6 +48,9 @@ module Cord
           ActiveSupport::Deprecation.silence { met.bind(self).call(val) }
         end
 
+        met = instance_method(name)
+        define_method("_#{name}") { met.bind(self).call }
+
         define_method name do
           send("#{name}_uid") && Cord::Attachment.new(name, self)
         end
