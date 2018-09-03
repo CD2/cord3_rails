@@ -34,7 +34,7 @@ module Cord
         end
 
         method_name = "#{name}="
-        met = instance_method(method_name)
+        met0 = instance_method(method_name)
         define_method method_name do |val|
           if val.is_a?(Hash)
             val = val.symbolize_keys
@@ -45,11 +45,11 @@ module Cord
               return
             end
           end
-          ActiveSupport::Deprecation.silence { met.bind(self).call(val) }
+          ActiveSupport::Deprecation.silence { met0.bind(self).call(val) }
         end
 
-        met = instance_method(name)
-        define_method("_#{name}") { met.bind(self).call }
+        met1 = instance_method(name)
+        define_method("_#{name}") { met1.bind(self).call }
 
         define_method name do
           send("#{name}_uid") && Cord::Attachment.new(name, self)
