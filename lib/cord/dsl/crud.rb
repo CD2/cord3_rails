@@ -50,7 +50,7 @@ module Cord
               run_crud_callbacks(:before_save, resource)
               next if halted?
               if resource.save
-                render(id: resource.id)
+                render render_records(resource.id)[0]
                 run_crud_callbacks(:after_save, resource)
                 next if halted?
                 run_crud_callbacks(:after_create, resource)
@@ -72,7 +72,7 @@ module Cord
               run_crud_callbacks(:before_save, resource)
               next if halted?
               if resource.save
-                render(id: resource.id)
+                render render_records(resource.id)[0]
                 run_crud_callbacks(:after_save, resource)
                 next if halted?
                 run_crud_callbacks(:after_update, resource)
