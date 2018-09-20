@@ -298,7 +298,10 @@ module Cord
     def apply_search(driver, search)
       assert_driver(driver)
       conditions = searchable_columns.map do |col|
-        col = meta_attributes.dig(normalize(col), :sql) || col
+        if (meta = meta_attributes[normalize(col)])&.dig(:sql)
+          driver = driver.joins(meta[:joins])
+          col = meta_attributes.dig(normalize(col), :sql) || col
+        end
         col = col.is_a?(Proc) ? instance_exec(*[driver][0...col.arity], &col) : col
         "#{col} ILIKE :term"
       end
