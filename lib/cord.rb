@@ -6,6 +6,15 @@ require 'binding_of_caller'
 
 Dir["#{Cord::Engine.root}/lib/cord/spec/**/*.rb"].each { |f| require f }
 
+require 'cord/handlers/handler'
+require 'cord/handlers/record_handler'
+require 'cord/handlers/ids_handler'
+require 'cord/handlers/action_handler'
+
+Cord.register_handler :record, Cord::RecordHandler
+Cord.register_handler :ids, Cord::IdsHandler
+Cord.register_handler :action, Cord::ActionHandler
+
 module Cord
   def self.config_setting name, default: nil, choices: nil, type: nil
     mattr_reader name

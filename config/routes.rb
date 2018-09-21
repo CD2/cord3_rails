@@ -6,4 +6,5 @@ Cord::Engine.routes.draw do
   get '/*api', to: 'api_base#index'
 
   post '/', to: 'api_base#respond'
+  post '/beta', to: 'beta#respond'
 end

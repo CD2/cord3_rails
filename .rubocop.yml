@@ -1,6 +1,5 @@
 require: rubocop-rspec
 
-# Style choice: Nested classes & modules
 Style/ClassAndModuleChildren:
   EnforcedStyle: nested
 
@@ -10,21 +9,49 @@ SpaceAroundEqualsInParameterDefault:
 Style/Documentation:
   Enabled: false
 
+Style/RescueStandardError:
+  EnforcedStyle: implicit
+
+Style/RescueModifier:
+  Enabled: false
+
+Style/NumericPredicate:
+  Enabled: false
+
+Style/TrailingCommaInHashLiteral:
+  Enabled: false
+
+Style/TrailingCommaInArrayLiteral:
+  Enabled: false
+
+Style/Lambda:
+  EnforcedStyle: literal
+
+Layout/SpaceInLambdaLiteral:
+  EnforcedStyle: require_space
+
+Layout/EmptyLineAfterGuardClause:
+  Enabled: false
+
+Metrics/LineLength:
+  Max: 100
+
+Metrics/MethodLength:
+  Max: 15
+
+Naming/FileName:
+  Exclude:
+    - 'Gemfile'
+
 AllCops:
-  TargetRubyVersion: 2.4
-  Include:
-    - Rakefile
-    - config.ru
-    - lib/**/*.rake
+  TargetRubyVersion: 2.5.1
   Exclude:
     - db/schema.rb
-    - db/migrate/*
-    - app/assets/*
-    - node_modules/**/*
+    - db/migrate/*.rb
+    - bin/*
+    - node_modules/*
+    - lib/**/*.rake
     - config/puma.rb
-    - config/initializers/*
-    - config/environments/*
-    - config/spring.rb
-    - bin/webpack-dev-server
+    - config/environments/*.rb
     - Rakefile
-    - Gemfile
+    - config.ru

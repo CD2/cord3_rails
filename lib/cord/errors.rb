@@ -2,6 +2,7 @@ module Cord
   StandardError = Class.new(::StandardError)
 
   AbstractApiError = Class.new(StandardError)
+  ValidationError = Class.new(StandardError)
   StaticApiError = Class.new(StandardError)
   UnpermittedParameters = Class.new(StandardError)
   Warning = Class.new(StandardError)
