@@ -70,12 +70,12 @@ module Cord
 
     def get_records(api, attrs, blobs)
       ids = blobs.map { |blob| blob[:data][:id] }
-      api.render_records(ids, attrs).group_by { |record| record['id'].to_s }
+      api.render_records(ids, attrs).index_by { |record| (record[:id] || record['id']).to_s }
     end
 
     def render_record(blob, records)
-      record = records[blob[:id]]
-      if !record || record['error']
+      record = records[blob[:data][:id].to_s]
+      if !record || record[:_errors]
         error blob, :notFound
       else
         render blob, record
