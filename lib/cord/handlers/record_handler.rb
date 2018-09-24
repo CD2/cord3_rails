@@ -14,7 +14,7 @@ module Cord
 
     def validate_each(blob)
       return unless (api = validate_api(blob))
-      validate_id(blob) && validate_attributes(blob, api)
+      validate_id(blob) && validate_attributes(api, blob)
     end
 
     def validate_api(blob)
@@ -40,7 +40,7 @@ module Cord
       false
     end
 
-    def validate_attributes(blob, api)
+    def validate_attributes(api, blob)
       attributes = blob[:data][:attributes] = _normalize(Array.wrap(blob[:data][:attributes])).sort
       missing = attributes.reject { |name| api.attributes[name] }
       return true if missing.none?
