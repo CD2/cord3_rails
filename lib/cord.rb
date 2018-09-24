@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'cord/engine'
 require 'cord/active_record'
 require 'cord/base_api'
@@ -6,17 +8,14 @@ require 'binding_of_caller'
 
 Dir["#{Cord::Engine.root}/lib/cord/spec/**/*.rb"].each { |f| require f }
 
+require 'cord/response'
 require 'cord/handlers/handler'
 require 'cord/handlers/record_handler'
 require 'cord/handlers/ids_handler'
 require 'cord/handlers/action_handler'
 
-Cord.register_handler :record, Cord::RecordHandler
-Cord.register_handler :ids, Cord::IdsHandler
-Cord.register_handler :action, Cord::ActionHandler
-
 module Cord
-  def self.config_setting name, default: nil, choices: nil, type: nil
+  def self.config_setting(name, default: nil, choices: nil, type: nil)
     mattr_reader name
     if choices
       define_singleton_method "#{name}=" do |obj|
@@ -82,4 +81,9 @@ module Cord
 
   # A callback for extending the api base controller
   config_setting :after_controller_load, default: -> {}, type: Proc
+
+  # Register the beta handlers
+  register_handler :record, RecordHandler
+  register_handler :ids, IdsHandler
+  register_handler :action, ActionHandler
 end

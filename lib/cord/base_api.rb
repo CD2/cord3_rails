@@ -83,7 +83,7 @@ module Cord
       @calculated_ids[args] = result
     end
 
-    def render_records ids, keywords = [], beta: false
+    def render_records ids, keywords = []
       @records_json = []
       ids = prepare_ids(ids)
       @keywords, @options = prepare_keywords(keywords)
@@ -152,7 +152,7 @@ module Cord
 
       @keywords, @options = nil
       if missing_ids.any?
-        error_log RecordNotFound.new(missing_ids) unless beta
+        error_log RecordNotFound.new(missing_ids)
         @records_json += missing_ids.map { |id| { id: id, _errors: ['not found'] } }
       end
       @records_json

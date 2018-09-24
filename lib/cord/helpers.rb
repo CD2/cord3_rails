@@ -62,8 +62,7 @@ module Cord
           raise e if Rails.env.development? && (e.is_a?(SystemExit) || e.is_a?(Interrupt))
           case Cord.action_on_error
           when :log
-            str = [nil, e.message, *e.backtrace, nil].join("\n")
-            respond_to?(:logger) ? logger.error(str) : puts(str)
+            Rails.logger.error([nil, e.message, *e.backtrace, nil].join("\n"))
           when :raise
             raise e
           end
