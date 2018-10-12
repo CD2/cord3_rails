@@ -215,6 +215,15 @@ module Cord
           [json, ids]
         end
 
+        def driver_to_csv driver
+          sql = require_sql(driver)
+          file = Tempfile.new
+          sql(<<-SQL).compact.assign(file: file.path, sq: sql).run
+            COPY (:sq) TO :file DELIMITER ',' CSV HEADER
+          SQL
+          file
+        end
+
         def json_merge x, y
           return x + y if x.is_a?(Array)
           return x.merge(y) { |_k, v1, v2| json_merge(v1, v2) } if x.is_a?(Hash)

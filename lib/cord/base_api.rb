@@ -33,7 +33,7 @@ module Cord
     self.blacklist_attributes :cord_cache
 
     # For debugging
-    %i[render_ids render_records perform_member_action perform_collection_action].each do |met|
+    %i[render_ids render_records perform_member_action perform_collection_action generate_csv].each do |met|
       define_singleton_method met do |*args|
         prev_scopes = Cord.disable_default_scopes
         prev_error = Cord.action_on_error
@@ -156,6 +156,61 @@ module Cord
         @records_json += missing_ids.map { |id| { id: id, _errors: ['not found'] } }
       end
       @records_json
+    end
+
+    def generate_csv ids, *keywords, **labels
+      labels = labels.map { |k, v| [normalize(k), v.to_s] }.to_h
+      keywords = _normalize(keywords.flatten) | labels.keys
+      _labels = {}
+      keywords.each { |k| _labels[k] = labels.fetch(k, k) }
+
+      return Tempfile.new unless keywords.any?
+
+      ids = prepare_ids(ids)
+
+      # HACK
+      default_attributes_was = self.class.default_attributes.dup
+      self.class.default_attributes = []
+      @keywords, @options = prepare_keywords(keywords)
+      self.class.default_attributes = default_attributes_was
+
+      if @keywords.all? { |x| type_of_keyword(x).in?(%i[field virtual]) }
+        records = driver.where(id: ids.to_a)
+        pg_generate_csv records, _labels
+      else
+        # HACK
+        keywords = @keywords
+        json = render_records(ids.to_a, keywords)
+        rb_generate_csv json, _labels
+      end
+    end
+
+    def pg_generate_csv records, labels
+      selects = []
+      joins = []
+
+      @keywords.each do |keyword|
+        joins << meta_attributes[keyword][:joins] if meta_attributes[keyword][:joins]
+        sql = meta_attributes[keyword][:sql]
+        sql = sql.is_a?(Proc) ? instance_exec(*[records][0...sql.arity], &sql) : sql
+        selects << %(#{sql} AS "#{labels[keyword].gsub('"', '""')}")
+      end
+
+      records = alias_driver(records).joins(joins).select(selects)
+      driver_to_csv(records)
+    end
+
+    def rb_generate_csv json, labels
+      contents = CSV.generate do |csv|
+        csv << labels.values
+        json.each do |record|
+          csv << record.values_at(*labels.keys)
+        end
+      end
+      file = Tempfile.new
+      file.write(contents)
+      file.rewind
+      file
     end
 
     private
