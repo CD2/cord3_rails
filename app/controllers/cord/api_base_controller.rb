@@ -130,7 +130,9 @@ module Cord
         next unless k.in? %i[records ids actions]
         existing_item[1][k] ||= []
         next existing_item[1][k] += v unless k == :records
-        existing_item[1][k] = safely_combine_records(existing_item[1][k], v)
+        # HACK
+        existing_item[1][k] =
+          safely_combine_records([], safely_combine_records(existing_item[1][k], v))
       end
     end
 
