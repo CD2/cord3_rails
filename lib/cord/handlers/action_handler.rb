@@ -73,22 +73,22 @@ module Cord
         record,
         blob[:data][:name],
         data: blob[:data][:params].except(:id).to_h,
-        errors: e = [],
+        errors: errors = [],
         before_actions: true,
         nested: false
       )
-      e.any? ? handle_errors(blob, e) : render(blob, data)
+      errors.any? { |e| !e.is_a?(Warning) } ? handle_errors(blob, errors) : render(blob, data)
     end
 
     def perform_collection_action(api, blob)
       data = api.perform_collection_action(
         blob[:data][:name],
         data: blob[:data][:params].to_h,
-        errors: e = [],
+        errors: errors = [],
         before_actions: true,
         nested: false
       )
-      e.any? ? handle_errors(blob, e) : render(blob, data)
+      errors.any? { |e| !e.is_a?(Warning) } ? handle_errors(blob, errors) : render(blob, data)
     end
 
     def handle_errors(blob, *errors)
