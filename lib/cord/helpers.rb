@@ -218,9 +218,11 @@ module Cord
         def driver_to_csv driver
           sql = require_sql(driver)
           file = Tempfile.new
-          sql(<<-SQL).compact.assign(file: file.path, sq: sql).run
-            COPY (:sq) TO :file DELIMITER ',' CSV HEADER
-          SQL
+          sql("COPY (:sq) TO STDOUT DELIMITER ',' CSV HEADER").compact.assign(sq: sql).run
+          while (line = connection.raw_connection.get_copy_data)
+            file.write(line)
+          end
+          file.rewind
           file
         end
 
