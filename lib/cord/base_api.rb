@@ -85,9 +85,16 @@ module Cord
 
     def render_records ids, keywords = []
       @records_json = []
-      ids = prepare_ids(ids)
       @keywords, @options = prepare_keywords(keywords)
-      records = driver.where(id: ids.to_a)
+
+      if ids == :all
+        ids = []
+        records = driver
+      else
+        ids = prepare_ids(ids)
+        records = driver.where(id: ids.to_a)
+      end
+
       valid_caches = []
       invalid_caches = []
 
@@ -166,7 +173,12 @@ module Cord
 
       return Tempfile.new unless keywords.any?
 
-      ids = prepare_ids(ids)
+      if ids == :all
+        ids = []
+        all_ids = true
+      else
+        ids = prepare_ids(ids)
+      end
 
       # HACK
       default_attributes_was = self.class.default_attributes.dup
@@ -175,12 +187,12 @@ module Cord
       self.class.default_attributes = default_attributes_was
 
       if @keywords.all? { |x| type_of_keyword(x).in?(%i[field virtual]) }
-        records = driver.where(id: ids.to_a)
+        records = all_ids ? driver : driver.where(id: ids.to_a)
         pg_generate_csv records, _labels
       else
         # HACK
         keywords = @keywords
-        json = render_records(ids.to_a, keywords)
+        json = render_records(all_ids ? :all : ids.to_a, keywords)
         rb_generate_csv json, _labels
       end
     end
