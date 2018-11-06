@@ -30,7 +30,7 @@ module Cord
         data: {}, errors: nil, before_actions: false, nested: true
       )
         @actions_json = []
-        records = driver.where(id: ids)
+        records = driver.where(id: prepare_ids(ids))
         records.each do |record|
           @actions_json << perform_member_action(
             record, name, data: data, errors: errors, before_actions: before_actions, nested: nested
