@@ -30,6 +30,7 @@ module Cord
         dragonfly_accessor name, *args do
           after_assign do |attachment|
             attachment.convert!('-auto-orient') if attachment.ext != 'pdf' && attachment.image?
+            instance_eval("@cord_#{name}_changed = true")
           end
         end
 
@@ -60,10 +61,11 @@ module Cord
             update!("#{name}_cache" => send(name)&.reload_cache || {})
           end
 
-          before_save do
-            if send "will_save_change_to_#{name}_uid?"
+          after_save do
+            if instance_eval("@cord_#{name}_changed")
               new_cache = send("#{name}_uid") ? send(name)&.reload_cache || {} : {}
-              self["#{name}_cache"] = new_cache
+              update_columns("#{name}_cache" => new_cache)
+              instance_eval("@cord_#{name}_changed = false")
             end
           end
 
