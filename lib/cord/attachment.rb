@@ -60,12 +60,12 @@ module Cord
     def destroy_cached_images
       return nil # James said to do this
       return unless cache
-      Cord.helpers.async_map(cache.values) { |url| Dragonfly.app.destroy url_to_uid(url) }
+      cache.values.map { |url| Dragonfly.app.destroy url_to_uid(url) }
     end
 
     def reload_cache
       destroy_cached_images
-      Cord.helpers.async_map(sizes.keys) { |size| [size, store_new_size(size)] }.to_h
+      sizes.keys.map { |size| [size, store_new_size(size)] }.to_h
     end
 
     def get_size name
