@@ -217,10 +217,12 @@ module Cord
 
         def driver_to_csv driver
           sql = require_sql(driver)
-          file = Tempfile.new
-          sql("COPY (:sq) TO STDOUT DELIMITER ',' CSV HEADER").compact.assign(sq: sql).run
+          file = Tempfile.new(encoding: 'Windows-1252')
+          sql(<<-SQL).compact.assign(sq: sql).run
+            COPY (:sq) TO STDOUT (FORMAT CSV, DELIMITER ',', HEADER true, ENCODING 'WIN1252')
+          SQL
           while (line = connection.raw_connection.get_copy_data)
-            file.write(line)
+            file.write(line.force_encoding('Windows-1252'))
           end
           file.rewind
           file
