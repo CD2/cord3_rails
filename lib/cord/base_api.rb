@@ -131,7 +131,9 @@ module Cord
           end
 
           if meta_attributes[keyword][:joins]
-            joins << meta_attributes[keyword][:joins]
+            join = meta_attributes[keyword][:joins]
+            join = join.is_a?(Proc) ? instance_exec(*[records][0...join.arity], &join) : join
+            joins << join
           end
 
           sql = meta_attributes[keyword][:sql]
